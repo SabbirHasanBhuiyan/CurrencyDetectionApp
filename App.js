@@ -9,6 +9,7 @@ import 'react-native-gesture-handler';//
 import { firebase } from "./config";
 import Header from "./components/Header";
 import Login from "./screens/Login";
+import Registration from "./screens/Registration"
 import React, { useState , useEffect} from "react";
 import { createStackNavigator } from "@react-navigation/stack";
 
@@ -40,6 +41,21 @@ export default function App() {
           <Stack.Screen
             name="Login"
             component={Login}
+            options={{
+              headerTitle: () => <Header name="Your Currency" />,
+              headerStyle: {
+                height: 150,
+                borderBottomLeftRadius: 50,
+                borderBottomRightRadius: 50,
+                backgroundColor: "#00e4d0",
+                shadowColor: "#000",
+                elevation: 25,
+              },
+            }}
+          />
+          <Stack.Screen
+            name="Registration"
+            component={Registration}
             options={{
               headerTitle: () => <Header name="Your Currency" />,
               headerStyle: {
