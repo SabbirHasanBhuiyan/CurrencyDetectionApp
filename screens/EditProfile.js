@@ -1,15 +1,71 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, Image, TextInput, Button,
-  StyleSheet, Alert, TouchableOpacity
+  StyleSheet, Alert, TouchableOpacity, SafeAreaView,
 } from 'react-native';
 import { firebase } from '../config';
-import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
+
+
+
+
 
 const EditProfileScreen = ({ navigation }) => {
-  const [profilePic, setProfilePic] = useState(null);
+  const [image, setImage] = useState(null);
+  const [uploading, setUploading] = useState(false);
   const [emailVerified, setEmailVerified] = useState(false)
   const [userData, setUserData] = useState(null);
+  const [name, setName] = useState('');
+  const [about, setAbout] = useState('');
+
+  // Add function to handle picking a photo
+  const pickImage = async () => {
+
+    // no permissions request is necessary for launching the image library
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+      // All, Images, Videos
+    });
+
+    if (!result.canceled) {
+      setImage(result.assets[0].uri);
+
+    }
+  };
+  const uploadMedia = async () => {
+    setUploading(true);
+    try {
+      const { uri } = await FileSystem.getInfoAsync(image);
+      const blob = await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.onload = () => {
+          resolve(xhr.response);
+        };
+        xhr.onerror = (e) => {
+          reject(new TypeError('Network request failed'));
+        };
+
+        xhr.responseType = 'blob';
+        xhr.open('GET', uri, true);
+        xhr.send(null);
+      });
+      const filename = image.substring(image.lastIndexOf('/') + 1);
+      const ref = firebase.storage().ref().child(filename);
+      await ref.put(blob);
+      setUploading(false);
+      Alert.alert('Photo Uploaded!!!'); setImage(null);
+    } catch (error) {
+      console.error(error);
+      setUploading(false);
+    }
+  };
+
+
+
   useEffect(() => {
     if (!firebase.auth().currentUser.emailVerified) {
       setName('Please verify your email!!')
@@ -26,16 +82,6 @@ const EditProfileScreen = ({ navigation }) => {
     }
   }, [emailVerified]);
 
-  // Add function to handle picking a photo
-  const pickImage = () => {
-    launchImageLibrary({ mediaType: 'photo' }, response => {
-      if (!response.didCancel) {
-        setProfilePic(response.uri);
-      }
-    })
-  }
-  const [name, setName] = useState('');
-  const [about, setAbout] = useState('');
 
   useEffect(() => {
     firebase.firestore()
@@ -85,8 +131,8 @@ const EditProfileScreen = ({ navigation }) => {
       <TouchableOpacity onPress={pickImage}>
         <Image
           style={styles.image}
-          source={{uri: profilePic ? profilePic : (userData.profilePic? userData.profilePic : 'https://lh5.googleusercontent.com/-b0PKyNuQv5s/AAAAAAAAAAI/AAAAAAAAAAA/AMZuuclxAM4M1SCBGAO7Rp-QP6zgBEUkOQ/s96-c/photo.jpg' )}}
-          />
+          source={{ uri: image ? image : ( (userData && userData.profilePic) ? userData.profilePic : 'https://lh5.googleusercontent.com/-b0PKyNuQv5s/AAAAAAAAAAI/AAAAAAAAAAA/AMZuuclxAM4M1SCBGAO7Rp-QP6zgBEUkOQ/s96-c/photo.jpg') }}
+        />
       </TouchableOpacity>
       <TextInput
         style={styles.input}
