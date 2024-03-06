@@ -9,7 +9,8 @@ import 'react-native-gesture-handler';//
 import { firebase } from "./config";
 import Header from "./components/Header";
 import Login from "./screens/Login";
-import Registration from "./screens/Registration"
+import Registration from "./screens/Registration";
+import EditProfileScreen from "./screens/EditProfile";
 import React, { useState , useEffect} from "react";
 import { createStackNavigator } from "@react-navigation/stack";
 
@@ -88,7 +89,16 @@ export default function App() {
         <Tab.Screen name="Course List" component={CourseListScreen} />
         <Tab.Screen
           name="Profile"
-          component={ProfileScreen}
+          component={EditProfileScreen}
+          options={{
+            tabBarLabel: "My Profile",
+            tabBarIcon: () => <Ionicons name={"person"} size={20} />,
+            tabBarBadge: 3,
+          }}
+        />
+        <Tab.Screen
+          name="EditProfileScreen"
+          component={EditProfileScreen}
           options={{
             tabBarLabel: "My Profile",
             tabBarIcon: () => <Ionicons name={"person"} size={20} />,
