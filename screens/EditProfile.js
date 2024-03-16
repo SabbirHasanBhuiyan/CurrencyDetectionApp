@@ -3,11 +3,11 @@ import {
   View, Text, Image, TextInput, Button,
   StyleSheet, Alert, TouchableOpacity, SafeAreaView,
 } from 'react-native';
-import { firebase } from '../config';
+import { firebase , db ,storage } from '../config';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
-
-
+import { collection ,doc , setDoc, addDoc ,onSnapshot} from 'firebase/firestore';
+import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 
 
 
@@ -18,6 +18,8 @@ const EditProfileScreen = ({ navigation }) => {
   const [userData, setUserData] = useState(null);
   const [name, setName] = useState('');
   const [about, setAbout] = useState('');
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+  const [isUsernameAvailable, setIsUsernameAvailable] = useState(false);
 
   // Add function to handle picking a photo
   const pickImage = async () => {
@@ -54,8 +56,11 @@ const EditProfileScreen = ({ navigation }) => {
         xhr.send(null);
       });
       const filename = image.substring(image.lastIndexOf('/') + 1);
-      const ref = firebase.storage().ref().child(filename);
-      await ref.put(blob);
+
+      const StorageRef = ref(filename);
+      const upload = uploadBytesResumable(StorageRef, blob); // Use ref to get the child reference
+      await upload;
+     // await StorageRef.put(blob);
       setUploading(false);
       Alert.alert('Photo Uploaded!!!'); setImage(null);
     } catch (error) {
@@ -63,7 +68,154 @@ const EditProfileScreen = ({ navigation }) => {
       setUploading(false);
     }
   };
+  const getBlobFroUri = async (uri) => {
+    const blob = await new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.onload = function () {
+        resolve(xhr.response);
+      };
+      xhr.onerror = function (e) {
+        reject(new TypeError("Network request failed"));
+      };
+      xhr.responseType = "blob";
+      xhr.open("GET", uri, true);
+      xhr.send(null);
+    });
+  
+    return blob;
+  };
+  async function uploadImage(uri, path) {
+    let URL;
+    try {
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      const storageRef = ref(storage); // Get the storage reference
+      const upload = uploadBytesResumable(ref(storageRef, "juieurojoi"), blob); // Use ref to get the child reference
+      await upload;
+      const downloadURL = await getDownloadURL(ref(storageRef, path)); // Get the download URL after upload
+      console.log("File available at", downloadURL);
+      setImage("");
+    } catch (error) {
+      console.error("Error uploading image:", error);
+    }
+    return;
+    try{
+        const response = await fetch(uri);
+        const blob = await response.blob();
+        const storageRef = ref();
+        const upload = storageRef.child(path);
+        await upload.put(blob);
+        await upload.getDownloadURL().then((url) => {
+            URL = url;
+        });
+        return URL;
+    }catch(e){
+       throw e;
+    }
+    return;
+    console.log(uri);
+    try{
+      const response = await fetch(uri);
+      const blob = await response.blob();
+  
+      const storageRef = ref(storage, "Stuff/" + new Date().getTime());
+      const uploadTask = uploadBytesResumable(storageRef, blob);
+      const imageBlob = await getBlobFroUri(image)
 
+    //  return;
+      // listen for events
+      uploadTask.on(
+        "state_changed",
+        (snapshot) => {
+          const progress =
+            (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          console.log("Upload is " + progress + "% done");
+          setProgress(progress.toFixed());
+        },
+        (error) => {
+          // handle error
+        },
+        () => {
+          getDownloadURL(uploadTask.snapshot.ref).then(async (downloadURL) => {
+            console.log("File available at", downloadURL);
+            // save record
+           // await saveRecord(fileType, downloadURL, new Date().toISOString());
+            setImage("");
+          });
+        }
+      );
+    }catch(e){
+      console.log(e);
+    }
+  }
+  async function saveRecord(fileType, url, createdAt) {
+    try {
+      const docRef = await addDoc(collection(db, "files"), {
+        fileType,
+        url,
+        createdAt,
+      });
+      console.log("document saved correctly", docRef.id);
+    } catch (e) {
+      console.log(e);
+    }
+  }
+/*
+  async function uploadImage(uri, fileType) {
+    const response = await fetch(uri);
+    const blob = await response.blob();
+
+    const storageRef = ref(storage, "Stuff/" + new Date().getTime());
+    const uploadTask = uploadBytesResumable(storageRef, blob);
+
+    // listen for events
+    uploadTask.on(
+      "state_changed",
+      (snapshot) => {
+        const progress =
+          (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        console.log("Upload is " + progress + "% done");
+        setProgress(progress.toFixed());
+      },
+      (error) => {
+        // handle error
+      },
+      () => {
+        getDownloadURL(uploadTask.snapshot.ref).then(async (downloadURL) => {
+          console.log("File available at", downloadURL);
+          // save record
+          await saveRecord(fileType, downloadURL, new Date().toISOString());
+          setImage("");
+          setVideo("");
+        });
+      }
+    );*/
+  const checkUsernameAvailability = () => {
+    setIsCheckingUsername(true);
+    const enteredUsername = name.trim(); // Get the entered username and remove leading/trailing whitespace
+    console.log(name);
+
+
+    firebase.firestore().collection("users").where("userName", "==", name)
+    .get()
+    .then((snapshot) => {
+       /* snapshot.forEach((doc)=>{
+          console.log(doc.id, " => ", doc.data());
+        })*/
+    //    console.log(snapshot)
+        setIsCheckingUsername(false);
+        if (snapshot.empty) {
+          setIsUsernameAvailable(true); // Username is available
+        } else {
+          setIsUsernameAvailable(false); // Username already exists
+        }
+    })
+    .catch((error) => {
+        console.log("Error getting documents: ", error);
+    });
+
+  }
+  
 
 
   useEffect(() => {
@@ -96,32 +248,11 @@ const EditProfileScreen = ({ navigation }) => {
         }
       })
   }, []);
-
-  const handleUpdate = () => {
-    // Check if username is unique
-    firebase
-      .database()
-      .ref('usernames/' + name)
-      .once('value')
-      .then(snapshot => {
-        if (snapshot.exists()) {
-          Alert.alert('Username already exists');
-          return;
-        }
-        // Proceed with update
-        firebase.firestore()
-          .collection('users')
-          .doc(firebase.auth().currentUser.uid)
-          .update({
-            name,
-            about
-          })
-          .then(() => {
-            Alert.alert('Profile updated!');
-            navigation.goBack();
-          })
-      });
+  async function handleUpdate  (){
+    await uploadMedia();
+    //await uploadImage(image, "images/+new Date().getTime()");
   }
+
 
   return (
     <View style={styles.container}>
@@ -131,15 +262,26 @@ const EditProfileScreen = ({ navigation }) => {
       <TouchableOpacity onPress={pickImage}>
         <Image
           style={styles.image}
-          source={{ uri: image ? image : ( (userData && userData.profilePic) ? userData.profilePic : 'https://lh5.googleusercontent.com/-b0PKyNuQv5s/AAAAAAAAAAI/AAAAAAAAAAA/AMZuuclxAM4M1SCBGAO7Rp-QP6zgBEUkOQ/s96-c/photo.jpg') }}
+          source={{ uri: image ? image : ((userData && userData.profilePic) ? userData.profilePic : 'https://lh5.googleusercontent.com/-b0PKyNuQv5s/AAAAAAAAAAI/AAAAAAAAAAA/AMZuuclxAM4M1SCBGAO7Rp-QP6zgBEUkOQ/s96-c/photo.jpg') }}
         />
       </TouchableOpacity>
       <TextInput
         style={styles.input}
         placeholder="Name"
         value={name}
-        onChangeText={text => setName(text)}
+        onChangeText={text => {
+          setName(text);
+          setIsUsernameAvailable(false); // Reset username availability when the user types
+         // checkUsernameAvailability();
+        }}
+        onEndEditing={() => {
+          checkUsernameAvailability();
+        }}
+       // onBlur={checkUsernameAvailability} // Check username availability when the user finishes typing
       />
+      {isCheckingUsername && <Text>Checking username availability...</Text>}
+      {!isCheckingUsername && isUsernameAvailable && <Text>Username available</Text>}
+      {!isCheckingUsername && !isUsernameAvailable && <Text>Username already exists</Text>}
 
       <TextInput
         style={styles.input}
@@ -157,6 +299,8 @@ const EditProfileScreen = ({ navigation }) => {
     </View>
   );
 }
+export default EditProfileScreen;
+
 
 const styles = StyleSheet.create({
   container: {
@@ -186,4 +330,3 @@ const styles = StyleSheet.create({
   }
 });
 
-export default EditProfileScreen;

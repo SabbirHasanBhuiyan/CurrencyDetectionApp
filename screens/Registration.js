@@ -58,10 +58,11 @@ const Registration = () => {
       <View style={{ marginTop: 40 }}>
         <TextInput
           style={styles.textInput}
-          placeholder="Name"
+          placeholder="User Name"
           onChangeText={(name) => setName(name)}
           autoCorrect={false}
         />
+
         <TextInput
           style={styles.textInput}
           placeholder="Email"
@@ -83,7 +84,7 @@ const Registration = () => {
         onPress={() => registerUser(email, password, name)}
         style={styles.button}
       >
-            <Text style={{fontWeight:'bold',fontSize:22}}> Register </Text>
+        <Text style={{ fontWeight: 'bold', fontSize: 22 }}> Register </Text>
       </TouchableOpacity>
     </View>
   );
