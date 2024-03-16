@@ -8,6 +8,8 @@ import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 import { collection ,doc , setDoc, addDoc ,onSnapshot} from 'firebase/firestore';
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import dayjs from 'dayjs';
+
 
 
 
@@ -20,6 +22,8 @@ const EditProfileScreen = ({ navigation }) => {
   const [about, setAbout] = useState('');
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [isUsernameAvailable, setIsUsernameAvailable] = useState(false);
+  let downURL;
+
 
   // Add function to handle picking a photo
   const pickImage = async () => {
@@ -38,158 +42,8 @@ const EditProfileScreen = ({ navigation }) => {
 
     }
   };
-  const uploadMedia = async () => {
-    setUploading(true);
-    try {
-      const { uri } = await FileSystem.getInfoAsync(image);
-      const blob = await new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.onload = () => {
-          resolve(xhr.response);
-        };
-        xhr.onerror = (e) => {
-          reject(new TypeError('Network request failed'));
-        };
+ 
 
-        xhr.responseType = 'blob';
-        xhr.open('GET', uri, true);
-        xhr.send(null);
-      });
-      const filename = image.substring(image.lastIndexOf('/') + 1);
-
-      const StorageRef = ref(filename);
-      const upload = uploadBytesResumable(StorageRef, blob); // Use ref to get the child reference
-      await upload;
-     // await StorageRef.put(blob);
-      setUploading(false);
-      Alert.alert('Photo Uploaded!!!'); setImage(null);
-    } catch (error) {
-      console.error(error);
-      setUploading(false);
-    }
-  };
-  const getBlobFroUri = async (uri) => {
-    const blob = await new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      xhr.onload = function () {
-        resolve(xhr.response);
-      };
-      xhr.onerror = function (e) {
-        reject(new TypeError("Network request failed"));
-      };
-      xhr.responseType = "blob";
-      xhr.open("GET", uri, true);
-      xhr.send(null);
-    });
-  
-    return blob;
-  };
-  async function uploadImage(uri, path) {
-    let URL;
-    try {
-      const response = await fetch(uri);
-      const blob = await response.blob();
-      const storageRef = ref(storage); // Get the storage reference
-      const upload = uploadBytesResumable(ref(storageRef, "juieurojoi"), blob); // Use ref to get the child reference
-      await upload;
-      const downloadURL = await getDownloadURL(ref(storageRef, path)); // Get the download URL after upload
-      console.log("File available at", downloadURL);
-      setImage("");
-    } catch (error) {
-      console.error("Error uploading image:", error);
-    }
-    return;
-    try{
-        const response = await fetch(uri);
-        const blob = await response.blob();
-        const storageRef = ref();
-        const upload = storageRef.child(path);
-        await upload.put(blob);
-        await upload.getDownloadURL().then((url) => {
-            URL = url;
-        });
-        return URL;
-    }catch(e){
-       throw e;
-    }
-    return;
-    console.log(uri);
-    try{
-      const response = await fetch(uri);
-      const blob = await response.blob();
-  
-      const storageRef = ref(storage, "Stuff/" + new Date().getTime());
-      const uploadTask = uploadBytesResumable(storageRef, blob);
-      const imageBlob = await getBlobFroUri(image)
-
-    //  return;
-      // listen for events
-      uploadTask.on(
-        "state_changed",
-        (snapshot) => {
-          const progress =
-            (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          console.log("Upload is " + progress + "% done");
-          setProgress(progress.toFixed());
-        },
-        (error) => {
-          // handle error
-        },
-        () => {
-          getDownloadURL(uploadTask.snapshot.ref).then(async (downloadURL) => {
-            console.log("File available at", downloadURL);
-            // save record
-           // await saveRecord(fileType, downloadURL, new Date().toISOString());
-            setImage("");
-          });
-        }
-      );
-    }catch(e){
-      console.log(e);
-    }
-  }
-  async function saveRecord(fileType, url, createdAt) {
-    try {
-      const docRef = await addDoc(collection(db, "files"), {
-        fileType,
-        url,
-        createdAt,
-      });
-      console.log("document saved correctly", docRef.id);
-    } catch (e) {
-      console.log(e);
-    }
-  }
-/*
-  async function uploadImage(uri, fileType) {
-    const response = await fetch(uri);
-    const blob = await response.blob();
-
-    const storageRef = ref(storage, "Stuff/" + new Date().getTime());
-    const uploadTask = uploadBytesResumable(storageRef, blob);
-
-    // listen for events
-    uploadTask.on(
-      "state_changed",
-      (snapshot) => {
-        const progress =
-          (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        console.log("Upload is " + progress + "% done");
-        setProgress(progress.toFixed());
-      },
-      (error) => {
-        // handle error
-      },
-      () => {
-        getDownloadURL(uploadTask.snapshot.ref).then(async (downloadURL) => {
-          console.log("File available at", downloadURL);
-          // save record
-          await saveRecord(fileType, downloadURL, new Date().toISOString());
-          setImage("");
-          setVideo("");
-        });
-      }
-    );*/
   const checkUsernameAvailability = () => {
     setIsCheckingUsername(true);
     const enteredUsername = name.trim(); // Get the entered username and remove leading/trailing whitespace
@@ -216,7 +70,52 @@ const EditProfileScreen = ({ navigation }) => {
 
   }
   
+  async function uploadMediaToStorageBucket(uri,fileType) {
+    const user = firebase.auth().currentUser;
+    if (!user) return;
+    console.log(uri);
+    const fileName = dayjs().format('YYYY-MM-DD_HH-mm-ss');
+  
+    const storageRef = ref(storage, `media/${user.uid}/${fileName}`);
+  
+    try {
+      const response = await fetch(uri);
+  
+      if (!response.ok) {
+        throw new Error(`Failed to fetch file: ${response.statusText}`);
+      }
+  
+      const mediaBlob = await response.blob();
+      const upload = uploadBytesResumable(storageRef, mediaBlob);
+  
+      return new Promise((resolve, reject) => {
+        upload.on(
+          'state_changed',
+          (snapshot) => {
+            console.log(snapshot.bytesTransferred, '/', snapshot.totalBytes);
+          },
+          (error) => reject(error),
+          () => {
+            getDownloadURL(upload.snapshot.ref)
+              .then((url) =>{
+                downURL=url 
+                console.log(downURL);
+              }
+              //resolve({ fileName, fileUrl: url, ownerId: user.uid, fileType })
+              )
+              .catch((error) => reject(error));
+          }
+        );
+      });
+    } catch (error) {
+      throw new Error(error);
+    }
+  }
+  async function handleUpdate  (){
 
+    await uploadMediaToStorageBucket(image,"image");
+    //await uploadImage(image, "images/+new Date().getTime()");
+  }
 
   useEffect(() => {
     if (!firebase.auth().currentUser.emailVerified) {
@@ -248,10 +147,6 @@ const EditProfileScreen = ({ navigation }) => {
         }
       })
   }, []);
-  async function handleUpdate  (){
-    await uploadMedia();
-    //await uploadImage(image, "images/+new Date().getTime()");
-  }
 
 
   return (
@@ -329,4 +224,3 @@ const styles = StyleSheet.create({
     marginBottom: 10
   }
 });
-
