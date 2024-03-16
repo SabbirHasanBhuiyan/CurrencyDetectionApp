@@ -1,33 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, Image, TextInput, Button,
-  StyleSheet, Alert, TouchableOpacity, SafeAreaView,
+  StyleSheet, Alert, TouchableOpacity, SafeAreaView, Pressable,Platform
 } from 'react-native';
-import { firebase , db ,storage } from '../config';
+import { firebase, db, storage } from '../config';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
-import { collection ,doc , setDoc, addDoc ,onSnapshot} from 'firebase/firestore';
+import { collection, doc, setDoc, addDoc, onSnapshot } from 'firebase/firestore';
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import dayjs from 'dayjs';
-
-
-
+import DateTimePicker from "@react-native-community/datetimepicker"
 
 const EditProfileScreen = ({ navigation }) => {
   const [image, setImage] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [emailVerified, setEmailVerified] = useState(false)
-  const [userData, setUserData] = useState(null);
+  const [userData, setUserData] = useState();
   const [name, setName] = useState('');
   const [about, setAbout] = useState('');
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [isUsernameAvailable, setIsUsernameAvailable] = useState(false);
+  const [date, setDate] = useState(new Date()); // Initialize with current date
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [showPicker, setshowPicker] = useState(true);
   let downURL;
-
 
   // Add function to handle picking a photo
   const pickImage = async () => {
-
     // no permissions request is necessary for launching the image library
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.All,
@@ -39,55 +38,57 @@ const EditProfileScreen = ({ navigation }) => {
 
     if (!result.canceled) {
       setImage(result.assets[0].uri);
-
     }
   };
- 
 
   const checkUsernameAvailability = () => {
     setIsCheckingUsername(true);
     const enteredUsername = name.trim(); // Get the entered username and remove leading/trailing whitespace
-    console.log(name);
-
 
     firebase.firestore().collection("users").where("userName", "==", name)
-    .get()
-    .then((snapshot) => {
-       /* snapshot.forEach((doc)=>{
-          console.log(doc.id, " => ", doc.data());
-        })*/
-    //    console.log(snapshot)
+      .get()
+      .then((snapshot) => {
         setIsCheckingUsername(false);
         if (snapshot.empty) {
           setIsUsernameAvailable(true); // Username is available
         } else {
           setIsUsernameAvailable(false); // Username already exists
         }
-    })
-    .catch((error) => {
+      })
+      .catch((error) => {
         console.log("Error getting documents: ", error);
-    });
-
+      });
   }
-  
-  async function uploadMediaToStorageBucket(uri,fileType) {
+
+  const toggleDatePicker = () => {
+    setshowPicker(!showPicker);
+  }
+
+  const onChange = (event, selectedDate) => {
+    if (selectedDate) {
+      setDate(selectedDate);
+    }
+    toggleDatePicker(); // Close the date picker
+  }
+
+  async function uploadMediaToStorageBucket(uri, fileType) {
     const user = firebase.auth().currentUser;
     if (!user) return;
     console.log(uri);
     const fileName = dayjs().format('YYYY-MM-DD_HH-mm-ss');
-  
+
     const storageRef = ref(storage, `media/${user.uid}/${fileName}`);
-  
+
     try {
       const response = await fetch(uri);
-  
+
       if (!response.ok) {
         throw new Error(`Failed to fetch file: ${response.statusText}`);
       }
-  
+
       const mediaBlob = await response.blob();
       const upload = uploadBytesResumable(storageRef, mediaBlob);
-  
+
       return new Promise((resolve, reject) => {
         upload.on(
           'state_changed',
@@ -97,11 +98,11 @@ const EditProfileScreen = ({ navigation }) => {
           (error) => reject(error),
           () => {
             getDownloadURL(upload.snapshot.ref)
-              .then((url) =>{
-                downURL=url 
+              .then((url) => {
+                downURL = url
                 console.log(downURL);
               }
-              //resolve({ fileName, fileUrl: url, ownerId: user.uid, fileType })
+                //resolve({ fileName, fileUrl: url, ownerId: user.uid, fileType })
               )
               .catch((error) => reject(error));
           }
@@ -111,10 +112,10 @@ const EditProfileScreen = ({ navigation }) => {
       throw new Error(error);
     }
   }
-  async function handleUpdate  (){
 
-    await uploadMediaToStorageBucket(image,"image");
-    //await uploadImage(image, "images/+new Date().getTime()");
+  async function handleUpdate() {
+    await uploadMediaToStorageBucket(image, "image");
+    // Handle other updates here
   }
 
   useEffect(() => {
@@ -133,7 +134,6 @@ const EditProfileScreen = ({ navigation }) => {
     }
   }, [emailVerified]);
 
-
   useEffect(() => {
     firebase.firestore()
       .collection('users')
@@ -147,7 +147,6 @@ const EditProfileScreen = ({ navigation }) => {
         }
       })
   }, []);
-
 
   return (
     <View style={styles.container}>
@@ -167,12 +166,10 @@ const EditProfileScreen = ({ navigation }) => {
         onChangeText={text => {
           setName(text);
           setIsUsernameAvailable(false); // Reset username availability when the user types
-         // checkUsernameAvailability();
         }}
         onEndEditing={() => {
           checkUsernameAvailability();
         }}
-       // onBlur={checkUsernameAvailability} // Check username availability when the user finishes typing
       />
       {isCheckingUsername && <Text>Checking username availability...</Text>}
       {!isCheckingUsername && isUsernameAvailable && <Text>Username available</Text>}
@@ -186,6 +183,31 @@ const EditProfileScreen = ({ navigation }) => {
         multiline
       />
 
+      <Text style={styles.label}>Date of Birth</Text>
+
+      {showPicker && (
+        <DateTimePicker
+          mode="date"
+          display="spinner"
+          value={date}
+          onChange={onChange}
+        />
+      )}
+
+      {!showPicker && (
+        <Pressable
+          onPress={toggleDatePicker}
+        >
+          <TextInput
+            style={styles.input}
+            placeholder="Select Date"
+            value={dateOfBirth} // Update this with the chosen date string
+            placeholderTextColor="#11182744"
+            editable={false}
+          />
+        </Pressable>
+      )}
+
       <Button
         title="Update Profile"
         onPress={handleUpdate}
@@ -195,7 +217,6 @@ const EditProfileScreen = ({ navigation }) => {
   );
 }
 export default EditProfileScreen;
-
 
 const styles = StyleSheet.create({
   container: {
