@@ -1,29 +1,101 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { firebase } from '../config';
 
-const FacebookNewsFeed = () => {
+const newsFeed = () => {
   const [postText, setPostText] = useState('');
-  const [commentText, setCommentText] = useState('');
+  const [commentTexts, setCommentTexts] = useState({});
   const [posts, setPosts] = useState([
-    { id: 1, name: 'John Doe', date: 'March 16, 2024', content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque euismod magna eu neque ultricies, non convallis justo venenatis.', likes: 0, likedByCurrentUser: false, comments: [] },
-    { id: 2, name: 'Jane Smith', date: 'March 15, 2024', content: 'Nulla facilisi. Donec sit amet enim quis lectus dictum hendrerit ac non justo.', likes: 0, likedByCurrentUser: false, comments: [] },
+    { id: 1, name: 'John Doe', date: 'March 16, 2024', content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque euismod magna eu neque ultricies, non convallis justo venenatis.', likes: 0, dislikes: 0, likedByCurrentUser: false, dislikedByCurrentUser: false, comments: [] },
+    { id: 2, name: 'Jane Smith', date: 'March 15, 2024', content: 'Nulla facilisi. Donec sit amet enim quis lectus dictum hendrerit ac non justo.', likes: 0, dislikes: 0, likedByCurrentUser: false, dislikedByCurrentUser: false, comments: [] },
     // Add more posts here
   ]);
+  const [userName, setUserName] = useState('');
+  const [userID, setUserId] = useState('');
+  useEffect(() => {
+    setUserId(firebase.auth().currentUser.uid);
+    let x=searchUserByUserID(firebase.auth().currentUser.uid);
+    console.log(x);
+   // setUserName(x);
+  }, []);
 
+  const getDateTimeString = () => {
+    const date = new Date();
+  
+    // Adjust for GMT+6 (Bangladesh Standard Time)
+    const offset = 6 * 60 * 60 * 1000; // 6 hours offset in milliseconds
+    const localTime = new Date(date.getTime() + offset);
+  
+    // Format date string in YYYY-MM-DD format
+    const dateString = localTime.toISOString().split('T')[0];
+  
+    // Format time string in HH:MM:SS format
+    const timeString = localTime.toISOString().split('T')[1].split('.')[0];
+  
+    return dateString + ' ' + timeString;
+  };
+  
+  const searchUserByUserID = async (userID) => {
+    firebase.firestore().collection("users").where("userID", "==", userID)
+      .get()
+      .then((snapshot) => {
+        if (!snapshot.empty) {
+          setUserName(snapshot.docs[0].data().userName);
+        //  return snapshot.docs[0].data().userName;
+        } else {
+        //  return "";
+        }
+      })
+      .catch((error) => {
+        console.log("Error getting documents: ", error);
+      });
+
+  };
   const handlePost = () => {
     if (postText.trim() !== '') {
+      const date = new Date();
       const newPost = {
-        id: posts.length + 1,
-        name: 'Your Name', // Replace with user's name
-        date: new Date().toDateString(), // Current date
+        id: firebase.auth().currentUser.uid + ' ' + getDateTimeString(),
+        name: userName, // Replace with user's name
+        date: getDateTimeString(), // Current date
         content: postText,
         likes: 0,
+        dislikes: 0,
         likedByCurrentUser: false,
+        dislikedByCurrentUser: false,
         comments: [],
       };
+      const newPostToDB = {
+        id: newPost.id,
+        name: userName, // Replace with user's name
+        date: newPost.date, // Current date
+        content: postText,
+        likes: 0,
+        dislikes: 0,
+      };
+
+      console.log(userID);
+      console.log(userName);
+
+      // Add the post to Firestore      
       setPosts([newPost, ...posts]);
-      setPostText('');
+
+      try{
+        firebase.firestore()
+        .collection('posts')
+        .add(newPostToDB)
+        .then(docRef => {
+          console.log('Post added with ID: ', docRef.id);
+        })
+        .catch(error => {
+          console.error('Error adding post: ', error);
+        });
+      }catch(e){
+        console.log(e);
+      }
+
+       setPostText('');
     }
   };
 
@@ -31,17 +103,35 @@ const FacebookNewsFeed = () => {
     const updatedPosts = posts.map(post =>
       post.id === postId
         ? {
-            ...post,
-            likes: post.likedByCurrentUser ? post.likes - 1 : post.likes + 1,
-            likedByCurrentUser: !post.likedByCurrentUser,
-          }
+          ...post,
+          likes: post.likedByCurrentUser ? post.likes - 1 : post.likes + 1,
+          dislikes: post.dislikedByCurrentUser ? post.dislikes - 1 : post.dislikes,
+          likedByCurrentUser: !post.likedByCurrentUser,
+          dislikedByCurrentUser: false,
+        }
+        : post
+    );
+    setPosts(updatedPosts);
+  };
+
+  const handleDislike = (postId) => {
+    const updatedPosts = posts.map(post =>
+      post.id === postId
+        ? {
+          ...post,
+          dislikes: post.dislikedByCurrentUser ? post.dislikes - 1 : post.dislikes + 1,
+          likes: post.likedByCurrentUser ? post.likes - 1 : post.likes,
+          dislikedByCurrentUser: !post.dislikedByCurrentUser,
+          likedByCurrentUser: false,
+        }
         : post
     );
     setPosts(updatedPosts);
   };
 
   const handleComment = (postId) => {
-    if (commentText.trim() !== '') {
+    const commentText = commentTexts[postId];
+    if (commentText && commentText.trim() !== '') {
       const newComment = {
         id: posts[postId - 1].comments.length + 1,
         name: 'Your Name', // Replace with user's name
@@ -54,8 +144,12 @@ const FacebookNewsFeed = () => {
           : post
       );
       setPosts(updatedPosts);
-      setCommentText('');
+      setCommentTexts(prevState => ({ ...prevState, [postId]: '' }));
     }
+  };
+
+  const handleCommentChange = (postId, text) => {
+    setCommentTexts(prevState => ({ ...prevState, [postId]: text }));
   };
 
   return (
@@ -87,6 +181,10 @@ const FacebookNewsFeed = () => {
                 <Ionicons name={post.likedByCurrentUser ? 'thumbs-up' : 'thumbs-up-outline'} size={24} color={post.likedByCurrentUser ? 'blue' : 'gray'} />
               </TouchableOpacity>
               <Text style={styles.likeCount}>{post.likes}</Text>
+              <TouchableOpacity onPress={() => handleDislike(post.id)}>
+                <Ionicons name={post.dislikedByCurrentUser ? 'thumbs-down' : 'thumbs-down-outline'} size={24} color={post.dislikedByCurrentUser ? 'blue' : 'gray'} />
+              </TouchableOpacity>
+              <Text style={styles.likeCount}>{post.dislikes}</Text>
               <TouchableOpacity>
                 <Ionicons name="chatbubble-ellipses" size={24} color="gray" />
               </TouchableOpacity>
@@ -96,8 +194,8 @@ const FacebookNewsFeed = () => {
               <TextInput
                 style={styles.commentInput}
                 placeholder="Write a comment..."
-                value={commentText}
-                onChangeText={text => setCommentText(text)}
+                value={commentTexts[post.id] || ''}
+                onChangeText={text => handleCommentChange(post.id, text)}
               />
               <TouchableOpacity onPress={() => handleComment(post.id)}>
                 <Ionicons name="send" size={24} color="blue" />
@@ -193,4 +291,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default FacebookNewsFeed;
+export default newsFeed;

@@ -105,7 +105,14 @@ export default function App() {
             tabBarBadge: 3,
           }}
         />
-        <Tab.Screen name="Settings" component={SettingsScreen} />
+        <Tab.Screen 
+          name="Blogs" 
+          component={SettingsScreen} 
+          options={{
+            tabBarLabel: "Blogs",
+            tabBarIcon: () => <Ionicons name={"newspaper-outline"} size={20} />,
+          }}
+        />
         <Tab.Screen
           name="About Stack"
           component={AboutStack}
