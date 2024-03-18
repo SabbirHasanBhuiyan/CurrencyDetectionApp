@@ -6,11 +6,7 @@ import { firebase } from '../config';
 const newsFeed = () => {
   const [postText, setPostText] = useState('');
   const [commentTexts, setCommentTexts] = useState({});
-  const [posts, setPosts] = useState([
-    { id: 1, name: 'John Doe', date: 'March 16, 2024', content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque euismod magna eu neque ultricies, non convallis justo venenatis.', likes: 0, dislikes: 0, likedByCurrentUser: false, dislikedByCurrentUser: false, comments: [] },
-    { id: 2, name: 'Jane Smith', date: 'March 15, 2024', content: 'Nulla facilisi. Donec sit amet enim quis lectus dictum hendrerit ac non justo.', likes: 0, dislikes: 0, likedByCurrentUser: false, dislikedByCurrentUser: false, comments: [] },
-    // Add more posts here
-  ]);
+  const [posts, setPosts] = useState([]);
   const [userName, setUserName] = useState('');
   const [userID, setUserId] = useState('');
   useEffect(() => {
@@ -19,6 +15,41 @@ const newsFeed = () => {
     console.log(x);
    // setUserName(x);
   }, []);
+
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        const postsSnapshot = await firebase.firestore().collection('posts').get();
+        const fetchedPosts = [];
+        for (const doc of postsSnapshot.docs) {
+          const postData = doc.data();
+          const postId = doc.id;
+          // Fetch comments for the current post
+          const commentsSnapshot = await firebase.firestore().collection('comments').doc(postId).collection('comments').get();
+          const comments = commentsSnapshot.docs.map(commentDoc => commentDoc.data());
+          // Fetch likes and dislikes for the current post
+          const likesOrDislikesSnapshot = await firebase.firestore().collection('likesOrDislikes').doc(postId).collection('users').get();
+          const likesOrDislikesData = likesOrDislikesSnapshot.docs.map(userDoc => userDoc.id);
+          const likedByCurrentUser = likesOrDislikesData.includes(firebase.auth().currentUser.uid);
+          const dislikedByCurrentUser = false; // Implement logic to check if current user disliked this post
+          const formattedPost = {
+            id: postId,
+            ...postData,
+            likedByCurrentUser,
+            dislikedByCurrentUser,
+            comments,
+          };
+          fetchedPosts.push(formattedPost);
+        }
+        setPosts(fetchedPosts);
+      } catch (error) {
+        console.error('Error fetching posts:', error);
+      }
+    };
+  
+    fetchPosts();
+  }, []);
+  
 
   const getDateTimeString = () => {
     const date = new Date();
@@ -55,8 +86,9 @@ const newsFeed = () => {
   const handlePost = () => {
     if (postText.trim() !== '') {
       const date = new Date();
+      const postId = firebase.auth().currentUser.uid + ' ' + getDateTimeString();
       const newPost = {
-        id: firebase.auth().currentUser.uid + ' ' + getDateTimeString(),
+        id: postId,
         name: userName, // Replace with user's name
         date: getDateTimeString(), // Current date
         content: postText,
@@ -67,67 +99,115 @@ const newsFeed = () => {
         comments: [],
       };
       const newPostToDB = {
-        id: newPost.id,
         name: userName, // Replace with user's name
-        date: newPost.date, // Current date
+        date: getDateTimeString(), // Current date
         content: postText,
         likes: 0,
         dislikes: 0,
       };
-
+  
       console.log(userID);
       console.log(userName);
-
-      // Add the post to Firestore      
-      setPosts([newPost, ...posts]);
-
-      try{
-        firebase.firestore()
+  
+      // Add the post to Firestore with the specified document ID
+      firebase.firestore()
         .collection('posts')
-        .add(newPostToDB)
-        .then(docRef => {
-          console.log('Post added with ID: ', docRef.id);
+        .doc(postId) // Specify the document ID here
+        .set(newPostToDB)
+        .then(() => {
+          console.log('Post added with ID: ', postId);
+          // Update local state after successfully adding the post
+          setPosts([newPost, ...posts]);
+          setPostText('');
         })
         .catch(error => {
           console.error('Error adding post: ', error);
         });
-      }catch(e){
-        console.log(e);
-      }
-
-       setPostText('');
     }
   };
+  
 
-  const handleLike = (postId) => {
-    const updatedPosts = posts.map(post =>
-      post.id === postId
-        ? {
-          ...post,
-          likes: post.likedByCurrentUser ? post.likes - 1 : post.likes + 1,
-          dislikes: post.dislikedByCurrentUser ? post.dislikes - 1 : post.dislikes,
-          likedByCurrentUser: !post.likedByCurrentUser,
-          dislikedByCurrentUser: false,
-        }
-        : post
-    );
-    setPosts(updatedPosts);
+  const updateLikesOrDislikes = async (postId, userId, value) => {
+    try {
+      // Construct the path
+      const path = `likesOrDislikes/${postId}/${userId}/${userName}`;
+      // Set the value in Firestore
+      await firebase.firestore().doc(path).set({ value });
+      console.log('Likes or dislikes updated successfully.');
+    } catch (error) {
+      console.error('Error updating likes or dislikes:', error);
+    }
   };
-
-  const handleDislike = (postId) => {
-    const updatedPosts = posts.map(post =>
-      post.id === postId
-        ? {
-          ...post,
-          dislikes: post.dislikedByCurrentUser ? post.dislikes - 1 : post.dislikes + 1,
-          likes: post.likedByCurrentUser ? post.likes - 1 : post.likes,
-          dislikedByCurrentUser: !post.dislikedByCurrentUser,
-          likedByCurrentUser: false,
-        }
-        : post
-    );
-    setPosts(updatedPosts);
+  
+  const updatePostLikesAndDislikes = async (postId, likes, dislikes) => {
+    try {
+      await firebase.firestore().collection('posts').doc(postId).update({
+        likes: likes,
+        dislikes: dislikes
+      });
+      console.log('Post likes and dislikes updated successfully.');
+    } catch (error) {
+      console.error('Error updating post likes and dislikes:', error);
+    }
   };
+  
+  const handleLike = async (postId) => {
+    const userId = firebase.auth().currentUser.uid;
+    const post = posts.find(post => post.id === postId);
+    if (post) {
+      const newValue = post.likedByCurrentUser ? 0 : 1;
+      const updatedLikes = newValue === 1 ? post.likes + 1 : (post.likedByCurrentUser ? post.likes - 1 : post.likes);
+      const updatedDislikes = newValue === 1 && post.dislikedByCurrentUser ? post.dislikes - 1 : post.dislikes;
+      // Update Firestore with the new values
+      await Promise.all([
+        updateLikesOrDislikes(postId, userId, newValue),
+        updatePostLikesAndDislikes(postId, updatedLikes, updatedDislikes)
+      ]);
+      // Update local state
+      const updatedPosts = posts.map(p =>
+        p.id === postId
+          ? {
+              ...p,
+              likes: updatedLikes,
+              dislikes: updatedDislikes,
+              likedByCurrentUser: newValue === 1,
+              dislikedByCurrentUser: false,
+            }
+          : p
+      );
+      setPosts(updatedPosts);
+    }
+  };
+  
+  const handleDislike = async (postId) => {
+    const userId = firebase.auth().currentUser.uid;
+    const post = posts.find(post => post.id === postId);
+    if (post) {
+      const newValue = post.dislikedByCurrentUser ? 0 : 2;
+      const updatedDislikes = newValue === 2 ? post.dislikes + 1 : (post.dislikedByCurrentUser ? post.dislikes - 1 : post.dislikes);
+      const updatedLikes = newValue === 2 && post.likedByCurrentUser ? post.likes - 1 : post.likes;
+      // Update Firestore with the new values
+      await Promise.all([
+        updateLikesOrDislikes(postId, userId, newValue),
+        updatePostLikesAndDislikes(postId, updatedLikes, updatedDislikes)
+      ]);
+      // Update local state
+      const updatedPosts = posts.map(p =>
+        p.id === postId
+          ? {
+              ...p,
+              dislikes: updatedDislikes,
+              likes: updatedLikes,
+              dislikedByCurrentUser: newValue === 2,
+              likedByCurrentUser: false,
+            }
+          : p
+      );
+      setPosts(updatedPosts);
+    }
+  };
+  
+  
 
   const addCommentToFirestore = async (postId, newComment) => {
     try {
