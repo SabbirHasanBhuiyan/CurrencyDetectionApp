@@ -129,15 +129,42 @@ const newsFeed = () => {
     setPosts(updatedPosts);
   };
 
+  const addCommentToFirestore = async (postId, newComment) => {
+    try {
+      const postRef = firebase.firestore().collection('comments').doc(postId);
+      const doc = await postRef.get();
+      if (doc.exists) {
+        // If the document exists, update the 'comments' field with the new comment
+        await postRef.update({
+          comments: firebase.firestore.FieldValue.arrayUnion(newComment)
+        });
+      } else {
+        // If the document does not exist, create it with the 'comments' field
+        await postRef.set({
+          comments: [newComment]
+        });
+      }
+      console.log('Comment added successfully.');
+    } catch (error) {
+      console.error('Error adding comment:', error);
+    }
+  };
+  
+  
   const handleComment = (postId) => {
     const commentText = commentTexts[postId];
     if (commentText && commentText.trim() !== '') {
       const newComment = {
-        id: posts[postId - 1].comments.length + 1,
-        name: 'Your Name', // Replace with user's name
-        date: new Date().toDateString(), // Current date
+        id: firebase.auth().currentUser.uid + ' ' + getDateTimeString(), // Generate a unique ID for the comment
+        name: userName, // Replace with user's name
+        date: getDateTimeString(), // Current date and time
         content: commentText,
       };
+  
+      // Add the comment to Firestore
+      addCommentToFirestore(postId, newComment);
+  
+      // Update local state
       const updatedPosts = posts.map(post =>
         post.id === postId
           ? { ...post, comments: [...post.comments, newComment] }
@@ -147,6 +174,7 @@ const newsFeed = () => {
       setCommentTexts(prevState => ({ ...prevState, [postId]: '' }));
     }
   };
+  
 
   const handleCommentChange = (postId, text) => {
     setCommentTexts(prevState => ({ ...prevState, [postId]: text }));
