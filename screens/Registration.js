@@ -56,12 +56,12 @@ const Registration = () => {
       <Text style={{ fontWeight: "bold", fontSize: 23 }}>Register Here!!</Text>
 
       <View style={{ marginTop: 40 }}>
-        <TextInput
+      {/*  <TextInput
           style={styles.textInput}
           placeholder="User Name"
           onChangeText={(name) => setName(name)}
           autoCorrect={false}
-        />
+        />*/}
 
         <TextInput
           style={styles.textInput}

@@ -24,22 +24,39 @@ const newsFeed = () => {
         for (const doc of postsSnapshot.docs) {
           const postData = doc.data();
           const postId = doc.id;
-          // Fetch comments for the current post
-          const commentsSnapshot = await firebase.firestore().collection('comments').doc(postId).collection('comments').get();
-          const comments = commentsSnapshot.docs.map(commentDoc => commentDoc.data());
-          // Fetch likes and dislikes for the current post
-          const likesOrDislikesSnapshot = await firebase.firestore().collection('likesOrDislikes').doc(postId).collection('users').get();
-          const likesOrDislikesData = likesOrDislikesSnapshot.docs.map(userDoc => userDoc.id);
-          const likedByCurrentUser = likesOrDislikesData.includes(firebase.auth().currentUser.uid);
-          const dislikedByCurrentUser = false; // Implement logic to check if current user disliked this post
-          const formattedPost = {
-            id: postId,
-            ...postData,
-            likedByCurrentUser,
-            dislikedByCurrentUser,
-            comments,
-          };
-          fetchedPosts.push(formattedPost);
+          console.log(postId+' '+firebase.auth().currentUser.uid);
+          await firebase.firestore().collection("likesOrDislikes").doc(postId+' '+firebase.auth().currentUser.uid)
+            .get()
+            .then((snapshot) => {
+              if (snapshot.exists) { // Check if the document exists
+                console.log(snapshot.data().value);
+                const likedByCurrentUser = snapshot.data().value===1? 1 : 0 ;
+                const dislikedByCurrentUser = snapshot.data().value===2? 1 : 0; // Implement logic to check if current user disliked this post
+                const formattedPost = {
+                  id: postId,
+                  ...postData,
+                  likedByCurrentUser,
+                  dislikedByCurrentUser,
+                };
+                fetchedPosts.push(formattedPost);
+              } else {
+                const likedByCurrentUser =   0 ;
+                const dislikedByCurrentUser =    0; // Implement logic to check if current user disliked this post
+                const formattedPost = {
+                  id: postId,
+                  ...postData,
+                  likedByCurrentUser,
+                  dislikedByCurrentUser,
+                };
+                fetchedPosts.push(formattedPost);
+              }
+              // You can use the value here or perform other operations
+            })
+            .catch((error) => {
+              console.error("Error getting document:", error);
+            });
+          
+
         }
         setPosts(fetchedPosts);
       } catch (error) {
@@ -99,15 +116,17 @@ const newsFeed = () => {
         comments: [],
       };
       const newPostToDB = {
+        id: postId,
         name: userName, // Replace with user's name
         date: getDateTimeString(), // Current date
         content: postText,
         likes: 0,
         dislikes: 0,
+        comments: [],
       };
   
-      console.log(userID);
-      console.log(userName);
+     // console.log(userID);
+      //console.log(userName);
   
       // Add the post to Firestore with the specified document ID
       firebase.firestore()
@@ -130,9 +149,8 @@ const newsFeed = () => {
   const updateLikesOrDislikes = async (postId, userId, value) => {
     try {
       // Construct the path
-      const path = `likesOrDislikes/${postId}/${userId}/${userName}`;
       // Set the value in Firestore
-      await firebase.firestore().doc(path).set({ value });
+      await firebase.firestore().collection('likesOrDislikes').doc(postId+' '+userID).set({ value: value });
       console.log('Likes or dislikes updated successfully.');
     } catch (error) {
       console.error('Error updating likes or dislikes:', error);
@@ -211,7 +229,7 @@ const newsFeed = () => {
 
   const addCommentToFirestore = async (postId, newComment) => {
     try {
-      const postRef = firebase.firestore().collection('comments').doc(postId);
+      const postRef = firebase.firestore().collection('posts').doc(postId);
       const doc = await postRef.get();
       if (doc.exists) {
         // If the document exists, update the 'comments' field with the new comment
