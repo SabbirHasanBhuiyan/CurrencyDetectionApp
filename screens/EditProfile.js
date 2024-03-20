@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, Image, TextInput, Button,
-  StyleSheet, Alert, TouchableOpacity, SafeAreaView, Pressable,Platform
+  StyleSheet, Alert, TouchableOpacity, SafeAreaView, Pressable, Platform
 } from 'react-native';
 import { firebase, db, storage } from '../config';
 import * as ImagePicker from 'expo-image-picker';
@@ -9,7 +9,7 @@ import * as FileSystem from 'expo-file-system';
 import { collection, doc, setDoc, addDoc, onSnapshot } from 'firebase/firestore';
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import dayjs from 'dayjs';
-import DateTimePicker from "@react-native-community/datetimepicker"
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 const EditProfileScreen = ({ navigation }) => {
   const [image, setImage] = useState(null);
@@ -18,21 +18,18 @@ const EditProfileScreen = ({ navigation }) => {
   const [userData, setUserData] = useState();
   const [name, setName] = useState('');
   const [about, setAbout] = useState('');
-
-  const [date, setDate] = useState(new Date()); // Initialize with current date
+  const [date, setDate] = useState(new Date());
   const [dateOfBirth, setDateOfBirth] = useState("");
-  const [showPicker, setshowPicker] = useState(true);
-  let downURL;
+  const [showPicker, setshowPicker] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [isValidPhoneNumber, setIsValidPhoneNumber] = useState(true); // Default to true initially
 
-  // Add function to handle picking a photo
   const pickImage = async () => {
-    // no permissions request is necessary for launching the image library
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.All,
       allowsEditing: true,
       aspect: [4, 3],
       quality: 1,
-      // All, Images, Videos
     });
 
     if (!result.canceled) {
@@ -40,23 +37,98 @@ const EditProfileScreen = ({ navigation }) => {
     }
   };
 
+  const onChange = (event, selectedDate) => {
+    if (selectedDate) {
+      setDate(selectedDate);
+      const formattedDate = dayjs(selectedDate).format('YYYY-MM-DD');
+      setDateOfBirth(formattedDate);
+      toggleDatePicker(); // Close the date picker
+    }
+  }
+
   const toggleDatePicker = () => {
     setshowPicker(!showPicker);
   }
 
-  const onChange = (event, selectedDate) => {
-    if (selectedDate) {
-      setDate(selectedDate);
-    }
-    toggleDatePicker(); // Close the date picker
+  const validatePhoneNumber = (input) => {
+    // Regex pattern to validate Bangladeshi phone number with country code
+    const regex = /^(\+?88)?01[0-9]{9}$/;
+    return regex.test(input);
   }
+
+  const handlePhoneNumberChange = (input) => {
+    setPhoneNumber(input);
+    setIsValidPhoneNumber(validatePhoneNumber(input));
+  }
+
+  const updateInfoToDB = (url)=>{
+    if (url !== "") {
+      const user = firebase.auth().currentUser;
+      if (user) {
+        const userRef = firebase.firestore().collection('users').doc(user.uid);
+  
+        // Update the userProfilePic field
+        userRef.update({
+          userProfilePic: url
+        })
+        .then(() => {
+          console.log("User profile picture updated successfully!");
+        })
+        .catch((error) => {
+          console.error("Error updating user profile picture: ", error);
+        });
+      } else {
+        console.error("User not authenticated.");
+      }
+    }
+    if(phoneNumber!=='' && isValidPhoneNumber){
+      const user = firebase.auth().currentUser;
+      if (user) {
+        const userRef = firebase.firestore().collection('users').doc(user.uid);
+  
+        // Update the userProfilePic field
+        userRef.update({
+          phoneNumber: phoneNumber
+        })
+        .then(() => {
+          console.log("User profile picture updated successfully!");
+        })
+        .catch((error) => {
+          console.error("Error updating user profile picture: ", error);
+        });
+      } else {
+        console.error("User not authenticated.");
+      }     
+    }
+    if(dateOfBirth){
+      const user = firebase.auth().currentUser;
+      if (user) {
+        const userRef = firebase.firestore().collection('users').doc(user.uid);
+  
+        // Update the userProfilePic field
+        userRef.update({
+          birthDay: dateOfBirth
+        })
+        .then(() => {
+          console.log("User profile picture updated successfully!");
+        })
+        .catch((error) => {
+          console.error("Error updating user profile picture: ", error);
+        });
+      } else {
+        console.error("User not authenticated.");
+      }    
+    }
+  }
+  
 
   async function uploadMediaToStorageBucket(uri, fileType) {
     const user = firebase.auth().currentUser;
     if (!user) return;
-    console.log(uri);
-    const fileName = dayjs().format('YYYY-MM-DD_HH-mm-ss');
 
+    setUploading(true); // Set uploading state to true when uploading starts
+
+    const fileName = dayjs().format('YYYY-MM-DD_HH-mm-ss');
     const storageRef = ref(storage, `media/${user.uid}/${fileName}`);
 
     try {
@@ -81,9 +153,9 @@ const EditProfileScreen = ({ navigation }) => {
               .then((url) => {
                 downURL = url
                 console.log(downURL);
-              }
-                //resolve({ fileName, fileUrl: url, ownerId: user.uid, fileType })
-              )
+                setUploading(false); // Set uploading state to false when uploading finishes
+                updateInfoToDB(url);
+              })
               .catch((error) => reject(error));
           }
         );
@@ -94,7 +166,14 @@ const EditProfileScreen = ({ navigation }) => {
   }
 
   async function handleUpdate() {
-    await uploadMediaToStorageBucket(image, "image");
+    if (!isValidPhoneNumber) {
+      Alert.alert('Invalid Phone Number', 'Please enter a valid Bangladeshi phone number with country code.');
+      return;
+    }
+
+    if (image) {
+      await uploadMediaToStorageBucket(image, "image");
+    }else updateInfoToDB("");
     // Handle other updates here
   }
 
@@ -129,7 +208,6 @@ const EditProfileScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-
       <Text style={styles.title}>Edit Profile</Text>
 
       <TouchableOpacity onPress={pickImage}>
@@ -138,7 +216,6 @@ const EditProfileScreen = ({ navigation }) => {
           source={{ uri: image ? image : ((userData && userData.profilePic) ? userData.profilePic : 'https://lh5.googleusercontent.com/-b0PKyNuQv5s/AAAAAAAAAAI/AAAAAAAAAAA/AMZuuclxAM4M1SCBGAO7Rp-QP6zgBEUkOQ/s96-c/photo.jpg') }}
         />
       </TouchableOpacity>
-
 
       <Text style={styles.label}>Date of Birth</Text>
 
@@ -151,28 +228,41 @@ const EditProfileScreen = ({ navigation }) => {
         />
       )}
 
-      {!showPicker && (
-        <Pressable
-          onPress={toggleDatePicker}
-        >
-          <TextInput
-            style={styles.input}
-            placeholder="Select Date"
-            value={dateOfBirth} // Update this with the chosen date string
-            placeholderTextColor="#11182744"
-            editable={false}
-          />
-        </Pressable>
-      )}
+      <Pressable
+        onPress={toggleDatePicker}
+      >
+        <TextInput
+          style={styles.input}
+          placeholder="Select Date"
+          value={dateOfBirth}
+          placeholderTextColor="#11182744"
+          editable={false}
+        />
+      </Pressable>
+
+      <Text style={styles.label}>Phone Number</Text>
+
+      <TextInput
+        style={[styles.input, !isValidPhoneNumber && styles.inputError]}
+        placeholder="Enter Phone Number"
+        value={phoneNumber}
+        onChangeText={handlePhoneNumberChange}
+        keyboardType="phone-pad"
+      />
+
+      {!isValidPhoneNumber && <Text style={styles.errorText}>Please enter a valid Bangladeshi phone number with country code (+88).</Text>}
+
+      {uploading && <Text style={styles.uploadingText}>Uploading image... Please wait</Text>}
 
       <Button
         title="Update Profile"
         onPress={handleUpdate}
       />
-
-    </View>
+   
+   </View>
   );
 }
+
 export default EditProfileScreen;
 
 const styles = StyleSheet.create({
@@ -199,6 +289,18 @@ const styles = StyleSheet.create({
     padding: 10,
     fontSize: 18,
     borderRadius: 6,
+    marginBottom: 10
+  },
+  inputError: {
+    borderColor: 'red',
+  },
+  errorText: {
+    color: 'red',
+    marginBottom: 10,
+  },
+  uploadingText: {
+    textAlign: 'center',
+    color: 'orange',
     marginBottom: 10
   }
 });

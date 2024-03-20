@@ -76,6 +76,9 @@ const Registration = () => {
               .set({
                 userName: name,
                 userID: firebase.auth().currentUser.uid,
+                userProfilePic: "",
+                birthDay: "",
+                phoneNumber: "",
               });
           })
           .catch((error) => {
