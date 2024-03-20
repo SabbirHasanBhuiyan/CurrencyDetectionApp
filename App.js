@@ -1,7 +1,7 @@
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import SettingsScreen from "./screens/SettingsScreen";
-import CourseListScreen from "./screens/CourseList";
+import CourseListScreen from "./screens/AboutApp";
 import ProfileScreen from "./screens/Profile";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { AboutStack } from "./AppStack";
@@ -13,6 +13,7 @@ import Registration from "./screens/Registration";
 import EditProfileScreen from "./screens/EditProfile";
 import React, { useState , useEffect} from "react";
 import { createStackNavigator } from "@react-navigation/stack";
+import {AboutScreen} from "./screens/AboutApp"
 
 import 'react-native-gesture-handler';
 
@@ -86,7 +87,6 @@ export default function App() {
           tabBarActiveTintColor: "purple",
         }}
       >
-        <Tab.Screen name="Course List" component={CourseListScreen} />
         <Tab.Screen
           name="Profile"
           component={EditProfileScreen}
@@ -113,13 +113,24 @@ export default function App() {
             tabBarIcon: () => <Ionicons name={"newspaper-outline"} size={20} />,
           }}
         />
+        <Tab.Screen name="About App" component={CourseListScreen} />
+
+      {/*  <Tab.Screen 
+          name="AboutScreen" 
+          component={AboutScreen} 
+          options={{
+            tabBarLabel: "About App",
+            tabBarIcon: () => <Ionicons name={"newspaper-outline"} size={20} />,
+          }}
+        />
         <Tab.Screen
           name="About Stack"
           component={AboutStack}
           options={{
-            headerShown: false,
+            tabBarLabel: "About App",
+            tabBarIcon: () => <Ionicons name={"newspaper-outline"} size={20} />,
           }}
-        />
+        />*/}
       </Tab.Navigator>
     </NavigationContainer>
   );
