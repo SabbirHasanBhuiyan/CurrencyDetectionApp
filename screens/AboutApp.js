@@ -1,9 +1,11 @@
-import React, { useState ,useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, TextInput, Button, ScrollView, Picker, TouchableOpacity } from 'react-native';
 import { WebView } from 'react-native-webview';
 import MapView, { Marker } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons'; // Assuming you are using Expo for your project
 import { firebase } from '../config';
+import YouTube from 'react-native-youtube-iframe';
+
 
 
 const AboutScreen = () => {
@@ -19,17 +21,17 @@ const AboutScreen = () => {
         // Retrieve the total rating and count from the 'totalRating' document
         const totalRatingDoc = await firebase.firestore().collection('ratings').doc('totalRating').get();
         const { total, count } = totalRatingDoc.data();
-  
+
         // Retrieve the current user's rating
         const userId = firebase.auth().currentUser.uid;
         const userRatingDoc = await firebase.firestore().collection('ratings').doc(userId).get();
         const userRating = userRatingDoc.exists ? userRatingDoc.data().rating : 0;
-  
+
         // Calculate the average rating
         const avgRating = total / count;
         // Format the average rating to display it with two decimal places
         const formattedAvgRating = avgRating.toFixed(2);
-  
+
         // Update the state with the average rating and user's previous rating
         setAverageRating(formattedAvgRating);
         setRating(userRating);
@@ -37,11 +39,11 @@ const AboutScreen = () => {
         console.error('Error calculating average rating:', error);
       }
     };
-  
+
     // Call the function to calculate the average rating
     calculateAverageRating();
   }, [needToFetchRaing]);
-  
+
 
   const handleRating = (rated) => {
     // Set the selected rating
@@ -150,22 +152,29 @@ const AboutScreen = () => {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       {/* Embedded YouTube Video */}
-
+      <View style={styles.videoContainer}>
+        <YouTube
+          videoId="PollTEgYOLw"
+          height={200}
+          width="100%"
+        />
+      </View>
 
       {/* Google Map */}
       <View style={styles.mapContainer}>
         <MapView
           style={styles.map}
           initialRegion={{
-            latitude: 37.78825,
-            longitude: -122.4324,
-            latitudeDelta: 0.0922,
-            longitudeDelta: 0.0421,
+            latitude: 22.4716,
+            longitude: 91.7877,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
           }}
         >
-          <Marker coordinate={{ latitude: 37.78825, longitude: -122.4324 }} />
+          <Marker coordinate={{ latitude: 22.4716, longitude: 91.7877 }} />
         </MapView>
       </View>
+
 
       {/* Interactive Real-time Rating */}
       <View style={styles.ratingContainer}>
@@ -224,12 +233,11 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   videoContainer: {
-    marginVertical: 20,
-    paddingHorizontal: 0, // Remove horizontal padding
-  },  
+    marginBottom: 20,
+  },
   video: {
     height: 200,
-    paddingHorizontal:0,
+    paddingHorizontal: 0,
   },
   mapContainer: {
     marginVertical: 20,

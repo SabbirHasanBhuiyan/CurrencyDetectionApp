@@ -18,8 +18,7 @@ const EditProfileScreen = ({ navigation }) => {
   const [userData, setUserData] = useState();
   const [name, setName] = useState('');
   const [about, setAbout] = useState('');
-  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
-  const [isUsernameAvailable, setIsUsernameAvailable] = useState(false);
+
   const [date, setDate] = useState(new Date()); // Initialize with current date
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [showPicker, setshowPicker] = useState(true);
@@ -40,25 +39,6 @@ const EditProfileScreen = ({ navigation }) => {
       setImage(result.assets[0].uri);
     }
   };
-
-  const checkUsernameAvailability = () => {
-    setIsCheckingUsername(true);
-    const enteredUsername = name.trim(); // Get the entered username and remove leading/trailing whitespace
-
-    firebase.firestore().collection("users").where("userName", "==", name)
-      .get()
-      .then((snapshot) => {
-        setIsCheckingUsername(false);
-        if (snapshot.empty) {
-          setIsUsernameAvailable(true); // Username is available
-        } else {
-          setIsUsernameAvailable(false); // Username already exists
-        }
-      })
-      .catch((error) => {
-        console.log("Error getting documents: ", error);
-      });
-  }
 
   const toggleDatePicker = () => {
     setshowPicker(!showPicker);
@@ -143,7 +123,6 @@ const EditProfileScreen = ({ navigation }) => {
         if (snapshot.exists) {
           const userData = snapshot.data();
           setName(userData.name);
-          setAbout(userData.about);
         }
       })
   }, []);
@@ -159,29 +138,7 @@ const EditProfileScreen = ({ navigation }) => {
           source={{ uri: image ? image : ((userData && userData.profilePic) ? userData.profilePic : 'https://lh5.googleusercontent.com/-b0PKyNuQv5s/AAAAAAAAAAI/AAAAAAAAAAA/AMZuuclxAM4M1SCBGAO7Rp-QP6zgBEUkOQ/s96-c/photo.jpg') }}
         />
       </TouchableOpacity>
-      <TextInput
-        style={styles.input}
-        placeholder="Name"
-        value={name}
-        onChangeText={text => {
-          setName(text);
-          setIsUsernameAvailable(false); // Reset username availability when the user types
-        }}
-        onEndEditing={() => {
-          checkUsernameAvailability();
-        }}
-      />
-      {isCheckingUsername && <Text>Checking username availability...</Text>}
-      {!isCheckingUsername && isUsernameAvailable && <Text>Username available</Text>}
-      {!isCheckingUsername && !isUsernameAvailable && <Text>Username already exists</Text>}
 
-      <TextInput
-        style={styles.input}
-        placeholder="About"
-        value={about}
-        onChangeText={text => setAbout(text)}
-        multiline
-      />
 
       <Text style={styles.label}>Date of Birth</Text>
 
