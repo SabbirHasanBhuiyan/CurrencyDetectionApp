@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { firebase } from '../config';
 
-const newsFeed = () => {
+const Blogs = () => {
+  const [loading, setLoading] = useState(true); // State variable to track loading state
   const [postText, setPostText] = useState('');
   const [commentTexts, setCommentTexts] = useState({});
   const [posts, setPosts] = useState([]);
   const [userName, setUserName] = useState('');
   const [userID, setUserId] = useState('');
+
   useEffect(() => {
     setUserId(firebase.auth().currentUser.uid);
     let x=searchUserByUserID(firebase.auth().currentUser.uid);
@@ -20,7 +22,6 @@ const newsFeed = () => {
     const fetchPosts = async () => {
       try {
         const postsSnapshot = await firebase.firestore().collection('posts').get();
-        const fetchedPosts = [];
         for (const doc of postsSnapshot.docs) {
           const postData = doc.data();
           const postId = doc.id;
@@ -38,7 +39,7 @@ const newsFeed = () => {
                   likedByCurrentUser,
                   dislikedByCurrentUser,
                 };
-                fetchedPosts.push(formattedPost);
+                setPosts(prevPosts => [...prevPosts, formattedPost]); // Update posts state with the new post
               } else {
                 const likedByCurrentUser =   0 ;
                 const dislikedByCurrentUser =    0; // Implement logic to check if current user disliked this post
@@ -48,24 +49,24 @@ const newsFeed = () => {
                   likedByCurrentUser,
                   dislikedByCurrentUser,
                 };
-                fetchedPosts.push(formattedPost);
+                setPosts(prevPosts => [...prevPosts, formattedPost]); // Update posts state with the new post
               }
               // You can use the value here or perform other operations
             })
             .catch((error) => {
               console.error("Error getting document:", error);
             });
-          
-
         }
-        setPosts(fetchedPosts);
+        setLoading(false); // Set loading to false after fetching all posts
       } catch (error) {
         console.error('Error fetching posts:', error);
+        setLoading(false); // Set loading to false if there's an error
       }
     };
   
     fetchPosts();
   }, []);
+  
   
 
   const getDateTimeString = () => {
@@ -102,6 +103,7 @@ const newsFeed = () => {
   };
   const handlePost = () => {
     if (postText.trim() !== '') {
+      setLoading(true);
       const date = new Date();
       const postId = firebase.auth().currentUser.uid + ' ' + getDateTimeString();
       const newPost = {
@@ -129,6 +131,8 @@ const newsFeed = () => {
       //console.log(userName);
   
       // Add the post to Firestore with the specified document ID
+      setPosts([newPost, ...posts]);
+
       firebase.firestore()
         .collection('posts')
         .doc(postId) // Specify the document ID here
@@ -136,12 +140,13 @@ const newsFeed = () => {
         .then(() => {
           console.log('Post added with ID: ', postId);
           // Update local state after successfully adding the post
-          setPosts([newPost, ...posts]);
           setPostText('');
         })
         .catch(error => {
-          console.error('Error adding post: ', error);
+          console.log('Error adding post: ', error);
         });
+        setLoading(false);
+
     }
   };
   
@@ -294,6 +299,9 @@ const newsFeed = () => {
       </View>
 
       {/* Posts from Others */}
+      {loading && (
+        <ActivityIndicator size="large" color="#0000ff" />
+      ) }
       <ScrollView style={styles.postsContainer}>
         {posts.map(post => (
           <View key={post.id} style={styles.post}>
@@ -417,4 +425,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default newsFeed;
+export default Blogs;

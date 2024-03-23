@@ -1,6 +1,6 @@
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import SettingsScreen from "./screens/SettingsScreen";
+import Blogs from "./screens/Blogs";
 import CourseListScreen from "./screens/AboutApp";
 import ProfileScreen from "./screens/Profile";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -13,7 +13,8 @@ import Registration from "./screens/Registration";
 import EditProfileScreen from "./screens/EditProfile";
 import React, { useState , useEffect} from "react";
 import { createStackNavigator } from "@react-navigation/stack";
-import {AboutScreen} from "./screens/AboutApp"
+import DetectScreen from "./screens/Detect";
+
 
 import 'react-native-gesture-handler';
 
@@ -87,16 +88,32 @@ export default function App() {
           tabBarActiveTintColor: "purple",
         }}
       >
+        <Tab.Screen 
+          name="Detect" 
+          component={DetectScreen} 
+          options={{
+            tabBarLabel: "Detect",
+            tabBarIcon: () => <Ionicons name={"newspaper-outline"} size={20} />,
+          }}
+        />
+        <Tab.Screen 
+          name="Blogs" 
+          component={Blogs} 
+          options={{
+            tabBarLabel: "Blogs",
+            tabBarIcon: () => <Ionicons name={"newspaper-outline"} size={20} />,
+          }}
+        />
         <Tab.Screen
-          name="Profile"
-          component={EditProfileScreen}
+          name="ProfileStack"
+          component={ProfileStackNavigator}
           options={{
             tabBarLabel: "My Profile",
             tabBarIcon: () => <Ionicons name={"person"} size={20} />,
             tabBarBadge: 3,
           }}
         />
-        <Tab.Screen
+       { /*<Tab.Screen
           name="EditProfileScreen"
           component={EditProfileScreen}
           options={{
@@ -104,18 +121,11 @@ export default function App() {
             tabBarIcon: () => <Ionicons name={"person"} size={20} />,
             tabBarBadge: 3,
           }}
-        />
-        <Tab.Screen 
-          name="Blogs" 
-          component={SettingsScreen} 
-          options={{
-            tabBarLabel: "Blogs",
-            tabBarIcon: () => <Ionicons name={"newspaper-outline"} size={20} />,
-          }}
-        />
+        />*/}
+
         <Tab.Screen name="About App" component={CourseListScreen} />
 
-      {/*  <Tab.Screen 
+      {/*  <Tab.Screen  
           name="AboutScreen" 
           component={AboutScreen} 
           options={{
@@ -133,5 +143,23 @@ export default function App() {
         />*/}
       </Tab.Navigator>
     </NavigationContainer>
+  );
+}
+
+function ProfileStackNavigator() {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{
+          headerShown: false
+        }}
+      />
+      <Stack.Screen
+        name="EditProfileScreen"
+        component={EditProfileScreen}
+      />
+    </Stack.Navigator>
   );
 }

@@ -119,6 +119,7 @@ const EditProfileScreen = ({ navigation }) => {
         console.error("User not authenticated.");
       }    
     }
+    navigation.push("Profile");
   }
   
 
@@ -208,7 +209,6 @@ const EditProfileScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Edit Profile</Text>
 
       <TouchableOpacity onPress={pickImage}>
         <Image

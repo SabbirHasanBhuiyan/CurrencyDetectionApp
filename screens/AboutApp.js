@@ -14,35 +14,36 @@ const AboutScreen = () => {
   const [averageRating, setAverageRating] = useState(0);
   const [needToFetchRaing, setNeedToFetchRating] = useState(0);
 
+  const calculateAverageRating = async () => {
+    try {
+      // Retrieve the total rating and count from the 'totalRating' document
+      const totalRatingDoc = await firebase.firestore().collection('ratings').doc('totalRating').get();
+      const { total, count } = totalRatingDoc.data();
+
+      // Retrieve the current user's rating
+      const userId = firebase.auth().currentUser.uid;
+      const userRatingDoc = await firebase.firestore().collection('ratings').doc(userId).get();
+      const userRating = userRatingDoc.exists ? userRatingDoc.data().rating : 0;
+
+      // Calculate the average rating
+      const avgRating = (total?total:0) / (count?count:0);
+      // Format the average rating to display it with two decimal places
+      const formattedAvgRating = avgRating.toFixed(2);
+
+      // Update the state with the average rating and user's previous rating
+      setAverageRating(formattedAvgRating);
+      setRating(userRating);
+    } catch (error) {
+      console.error('Error calculating average rating:', error);
+    }
+  };
+
   useEffect(() => {
     // Function to calculate and update the average rating
-    const calculateAverageRating = async () => {
-      try {
-        // Retrieve the total rating and count from the 'totalRating' document
-        const totalRatingDoc = await firebase.firestore().collection('ratings').doc('totalRating').get();
-        const { total, count } = totalRatingDoc.data();
-
-        // Retrieve the current user's rating
-        const userId = firebase.auth().currentUser.uid;
-        const userRatingDoc = await firebase.firestore().collection('ratings').doc(userId).get();
-        const userRating = userRatingDoc.exists ? userRatingDoc.data().rating : 0;
-
-        // Calculate the average rating
-        const avgRating = total / count;
-        // Format the average rating to display it with two decimal places
-        const formattedAvgRating = avgRating.toFixed(2);
-
-        // Update the state with the average rating and user's previous rating
-        setAverageRating(formattedAvgRating);
-        setRating(userRating);
-      } catch (error) {
-        console.error('Error calculating average rating:', error);
-      }
-    };
-
+ 
     // Call the function to calculate the average rating
     calculateAverageRating();
-  }, [needToFetchRaing]);
+  }, []);
 
 
   const handleRating = (rated) => {
@@ -84,14 +85,18 @@ const AboutScreen = () => {
         // Total rating document exists, update the total rating
         const data = totalRatingDoc.data();
         await totalRatingDocRef.update({
-          total: data.total - previousRatingByTheUSer + rating,
+          total: data.total - ratingDoc.data().rating + rating,
           count: data.count
         });
+        calculateAverageRating();
       } else {
         await totalRatingDocRef.set({
           total: rating,
           count: 1
+        }).then(()=>{
+          calculateAverageRating();
         })
+       
       }
     } else {
       // User is rating the app for the first time, create a new rating document
@@ -107,16 +112,21 @@ const AboutScreen = () => {
         await totalRatingDocRef.update({
           total: data.total + rating,
           count: data.count + 1
-        });
+        }).then(()=>{
+          calculateAverageRating();
+        })
+
       } else {
         await totalRatingDocRef.set({
           total: rating,
           count: 1
+        }).then(()=>{
+          calculateAverageRating();
         })
+
       }
     }
 
-    setNeedToFetchRating(!needToFetchRaing);
 
     // Update total rating
     /*  const totalRatingDocRef = firebase.firestore().collection('ratings').doc('totalRating');
