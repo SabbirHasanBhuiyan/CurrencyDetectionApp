@@ -14,6 +14,7 @@ import EditProfileScreen from "./screens/EditProfile";
 import React, { useState , useEffect} from "react";
 import { createStackNavigator } from "@react-navigation/stack";
 import DetectScreen from "./screens/Detect";
+import CurrencyRates from "./screens/CurrencyRates";
 
 
 import 'react-native-gesture-handler';
@@ -97,6 +98,14 @@ export default function App() {
           }}
         />
         <Tab.Screen 
+          name="Currency Rates" 
+          component={CurrencyRates} 
+          options={{
+            tabBarLabel: "Currency Rates",
+            tabBarIcon: () => <Ionicons name={"analytics-outline"} size={20} />,
+          }}
+        />
+        <Tab.Screen 
           name="Blogs" 
           component={Blogs} 
           options={{
@@ -113,34 +122,15 @@ export default function App() {
             tabBarBadge: 3,
           }}
         />
-       { /*<Tab.Screen
-          name="EditProfileScreen"
-          component={EditProfileScreen}
-          options={{
-            tabBarLabel: "My Profile",
-            tabBarIcon: () => <Ionicons name={"person"} size={20} />,
-            tabBarBadge: 3,
-          }}
-        />*/}
 
-        <Tab.Screen name="About App" component={CourseListScreen} />
-
-      {/*  <Tab.Screen  
-          name="AboutScreen" 
-          component={AboutScreen} 
-          options={{
-            tabBarLabel: "About App",
-            tabBarIcon: () => <Ionicons name={"newspaper-outline"} size={20} />,
-          }}
+        <Tab.Screen 
+            name="About App"
+            component={CourseListScreen} 
+            options={{
+              tabBarLabel: "About App",
+              tapBarIcon: () => <Ionicons name="information-circle-outline" size={20}/>
+            }}
         />
-        <Tab.Screen
-          name="About Stack"
-          component={AboutStack}
-          options={{
-            tabBarLabel: "About App",
-            tabBarIcon: () => <Ionicons name={"newspaper-outline"} size={20} />,
-          }}
-        />*/}
       </Tab.Navigator>
     </NavigationContainer>
   );
