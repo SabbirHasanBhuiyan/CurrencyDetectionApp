@@ -93,7 +93,7 @@ export default function App() {
           component={DetectScreen} 
           options={{
             tabBarLabel: "Detect",
-            tabBarIcon: () => <Ionicons name={"newspaper-outline"} size={20} />,
+            tabBarIcon: () => <Ionicons name={"scan-circle-outline"} size={20} />,
           }}
         />
         <Tab.Screen 

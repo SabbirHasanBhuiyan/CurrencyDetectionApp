@@ -32,6 +32,7 @@ const DetectScreen = () => {
 
   useEffect(() => {
     (async () => {
+      tf.setBackend('rn-webgl'); // Set the backend to 'rn-webgl'
       const model = await tf.loadLayersModel(bundleResourceIO(modelJson, modelWeights));
       setModel(model);
     })();
