@@ -32,7 +32,7 @@ const BarChartDemo = () => {
         <Text style={styles.detail}><Text style={styles.label}>App Name: </Text>Currency Detection App</Text>
       </View>
 
-      <Text style={styles.chartTitle}>Currency Detection Statistics</Text>
+      <Text style={styles.chartTitle}>Percentage of matches</Text>
       <BarChart
         data={barCharData}
         yAxisSuffix="%"

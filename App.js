@@ -137,7 +137,7 @@ export default function App() {
         }}
       >
         <Tab.Screen 
-          name="DetectStack" 
+          name="Detect" 
           component={DetectStackNavigator}  // Use the stack navigator for Detect
           options={{
             tabBarLabel: "Detect",
