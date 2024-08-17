@@ -3,7 +3,7 @@ import { LineChartData } from 'react-native-chart-kit/dist/line-chart/LineChart'
 import { StackedBarChartData } from 'react-native-chart-kit/dist/StackedBarChart';
 
 export const barCharData = {
-  labels: ['20 tk', '50 tk', '100 tk'],
+  labels: ['50 tk', '20 tk', '100 tk'],
   datasets: [
     {
       data: [28, 45, 60],

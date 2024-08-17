@@ -29,6 +29,7 @@ const DetectScreen = () => {
   const [loading, setLoading] = useState(false);
   const [model, setModel] = useState();
   const navigation = useNavigation();  // Add navigation here
+  const [predictionsData, setPredictionsData] = useState([0,0,0]);
 
   useEffect(() => {
     (async () => {
@@ -66,9 +67,11 @@ const DetectScreen = () => {
             const predictedProbability = softmaxPredictions[highestPredictionIndex];
 
             // Log each class and its probability
-            datasetClasses.forEach((classLabel, index) => {
-                console.log(`${classLabel}: ${(softmaxPredictions[index] * 100).toFixed(2)}%`);
-            });
+            //datasetClasses.forEach((classLabel, index) => {
+           //     console.log(`${classLabel}: ${(softmaxPredictions[index] * 100).toFixed(2)}%`);
+           // });
+             const data = softmaxPredictions.map(prob => (prob * 100).toFixed(2));
+            setPredictionsData(data);
 
             setPrediction(predictedClass);
             setLoading(false);
@@ -102,9 +105,8 @@ const pickImageFromGallery = async () => {
       const predictedProbability = softmaxPredictions[highestPredictionIndex];
 
       // Log each class and its probability
-      datasetClasses.forEach((classLabel, index) => {
-          console.log(`${classLabel}: ${(softmaxPredictions[index] * 100).toFixed(2)}%`);
-      });
+      const data = softmaxPredictions.map(prob => (prob * 100).toFixed(2));
+      setPredictionsData(data);
 
       setPrediction(predictedClass);
       setLoading(false);
@@ -128,8 +130,8 @@ const pickImageFromGallery = async () => {
       {prediction && !loading && (
         <TouchableOpacity
           style={styles.showReportButton}
-          onPress={() => navigation.push('BarChartDemo')} // Navigate to BarChartDemo.js
-        >
+          onPress={() =>  navigation.navigate('BarChartDemo', { predictions: predictionsData }   )}
+          >
           <Text style={styles.showReportButtonText}>Show Report</Text>
         </TouchableOpacity>
       )}

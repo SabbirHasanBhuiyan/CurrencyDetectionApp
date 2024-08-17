@@ -1,28 +1,41 @@
 import React from 'react';
 import { View, Text, useWindowDimensions, StyleSheet, ScrollView } from 'react-native';
 import { BarChart } from 'react-native-chart-kit';
-import { barCharData } from './Data';
+import { useRoute } from '@react-navigation/native';
 
 const BarChartDemo = () => {
   const { width } = useWindowDimensions();
+  const route = useRoute();  // Access the route to get the passed parameters
+  const { predictions } = route.params || { predictions: [0, 0, 0] };
+
+  const barCharData = {
+    labels: ['50 tk', '20 tk', '100 tk'],
+    datasets: [ //predictions[0], predictions[1], predictions[2]
+      {
+        data: [parseFloat(predictions[0]).toFixed(2),parseFloat(predictions[1]).toFixed(2),parseFloat(predictions[2]).toFixed(2) ], // Use the passed predictions
+        colors: [
+          (opacity = 1) => 'green',
+          (opacity = 1) => 'green',
+          (opacity = 1) => 'green',
+          (opacity = 1) => 'lightgrey',
+          (opacity = 1) => 'green'
+        ]
+      }
+    ]
+  };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.header}>Currency Detection Report</Text>
 
       <View style={styles.detailsContainer}>
-       {/*<Text style={styles.detail}><Text style={styles.label}>Detected By: </Text>John Doe</Text>*/}
         <Text style={styles.detail}><Text style={styles.label}>Detection Date and Time: </Text>{new Date().toLocaleString()}</Text>
         <Text style={styles.detail}><Text style={styles.label}>App Name: </Text>Currency Detection App</Text>
-      {/*  <Text style={styles.detail}><Text style={styles.label}>Detection Location: </Text>New York, USA</Text>
-        <Text style={styles.detail}><Text style={styles.label}>Detection Device: </Text>iPhone 13 Pro</Text>*/}
       </View>
 
       <Text style={styles.chartTitle}>Currency Detection Statistics</Text>
       <BarChart
         data={barCharData}
-        yAxisLabel=""
-        yAxisSuffix=""
+        yAxisSuffix="%"
         width={width - 20}  // to add some margin
         height={400}
         chartConfig={{
@@ -67,7 +80,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: 10,
     backgroundColor: '#f5f5f5',
-    alignItems: 'center', // Center the content horizontally
+    alignItems: 'center',
   },
   header: {
     fontSize: 24,
@@ -76,7 +89,7 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
   detailsContainer: {
-    width: '100%', // Make sure the details container takes the full width
+    width: '100%',
     marginVertical: 15,
     padding: 10,
     backgroundColor: '#ffffff',

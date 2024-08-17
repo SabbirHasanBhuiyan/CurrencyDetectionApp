@@ -40,7 +40,7 @@ function DetectStackNavigator() {
         name="BarChartDemo"
         component={BarChartDemo}
         options={({ navigation }) => ({
-          title: "Chart Report",  // Title for the BarChartDemo screen
+          title: "Currency Detection Report",  // Title for the BarChartDemo screen
           headerLeft: () => (
             <Ionicons 
               name="arrow-back" 
