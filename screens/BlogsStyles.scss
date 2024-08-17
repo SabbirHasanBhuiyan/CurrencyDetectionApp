@@ -1,0 +1,84 @@
+.container {
+    flex: 1;
+    padding: 10px;
+  
+    .postingOption {
+      flex-direction: row;
+      align-items: center;
+      margin-bottom: 10px;
+  
+      .postInput {
+        flex: 1;
+        margin-right: 10px;
+        padding: 5px;
+        border: 1px solid lightgray;
+        border-radius: 5px;
+      }
+    }
+  
+    .postsContainer {
+      flex: 1;
+  
+      .post {
+        margin-bottom: 20px;
+        padding: 10px;
+        background-color: #f9f9f9;
+        border-radius: 10px;
+  
+        .postHeader {
+          flex-direction: row;
+          justify-content: space-between;
+          margin-bottom: 5px;
+  
+          .postHeaderName {
+            font-weight: bold;
+          }
+  
+          .postHeaderDate {
+            color: gray;
+          }
+        }
+  
+        .postContent {
+          margin-bottom: 10px;
+        }
+  
+        .postActions {
+          flex-direction: row;
+          align-items: center;
+          margin-bottom: 10px;
+  
+          .likeCount {
+            margin-left: 5px;
+            margin-right: 10px;
+          }
+        }
+  
+        .commentSection {
+          flex-direction: row;
+          align-items: center;
+  
+          .commentInput {
+            flex: 1;
+            margin-right: 10px;
+            padding: 5px;
+            border: 1px solid lightgray;
+            border-radius: 5px;
+          }
+        }
+  
+        .comment {
+          margin-top: 10px;
+          padding: 5px;
+          background-color: #f0f0f0;
+          border-radius: 5px;
+  
+          .commentHeader {
+            font-weight: bold;
+            margin-bottom: 5px;
+          }
+        }
+      }
+    }
+  }
+  

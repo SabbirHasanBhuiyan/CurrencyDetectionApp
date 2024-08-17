@@ -126,38 +126,9 @@ const AboutScreen = () => {
 
       }
     }
-
-
-    // Update total rating
-    /*  const totalRatingDocRef = firebase.firestore().collection('ratings').doc('totalRating');
-      const totalRatingDoc = await totalRatingDocRef.get();
-      if (totalRatingDoc.exists) {
-        // Total rating document exists, update the total rating
-        const data = totalRatingDoc.data();
-        await totalRatingDocRef.set({
-          total: data.total + rating,
-          count: data.count + 1
-        });
-      } else {
-        // Total rating document doesn't exist, create a new one
-        await totalRatingDocRef.set({
-          total: rating,
-          count: 1
-        });
-      }
-    };*/
   }
 
 
-  const handleComment = () => {
-    // Implement logic to store user comment
-    console.log('Comment:', comment);
-  };
-
-  const handleOptionChange = (value) => {
-    // Implement logic to handle dropdown selection
-    setSelectedOption(value);
-  };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
