@@ -1,36 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, TextInput, Button, ScrollView, Picker, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Text, TextInput, Button, ScrollView, Picker, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { WebView } from 'react-native-webview';
 import MapView, { Marker } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons'; // Assuming you are using Expo for your project
 import { firebase } from '../config';
 import YouTube from 'react-native-youtube-iframe';
 
-
-
 const AboutScreen = () => {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [averageRating, setAverageRating] = useState(0);
-  const [needToFetchRaing, setNeedToFetchRating] = useState(0);
+  const [loading, setLoading] = useState(false); // Add loading state
 
   const calculateAverageRating = async () => {
     try {
-      // Retrieve the total rating and count from the 'totalRating' document
       const totalRatingDoc = await firebase.firestore().collection('ratings').doc('totalRating').get();
       const { total, count } = totalRatingDoc.data();
 
-      // Retrieve the current user's rating
       const userId = firebase.auth().currentUser.uid;
       const userRatingDoc = await firebase.firestore().collection('ratings').doc(userId).get();
       const userRating = userRatingDoc.exists ? userRatingDoc.data().rating : 0;
 
-      // Calculate the average rating
-      const avgRating = (total?total:0) / (count?count:0);
-      // Format the average rating to display it with two decimal places
+      const avgRating = (total ? total : 0) / (count ? count : 0);
       const formattedAvgRating = avgRating.toFixed(2);
 
-      // Update the state with the average rating and user's previous rating
       setAverageRating(formattedAvgRating);
       setRating(userRating);
     } catch (error) {
@@ -39,106 +32,89 @@ const AboutScreen = () => {
   };
 
   useEffect(() => {
-    // Function to calculate and update the average rating
- 
-    // Call the function to calculate the average rating
     calculateAverageRating();
   }, []);
 
-
   const handleRating = (rated) => {
-    // Set the selected rating
     setRating(rated);
-
-    // Implement logic to store user rating (if needed)
-    // For example, you can call a function to store rating in Firebase here
-    // storeUserRating(rated);
   };
 
   const saveRating = async () => {
-    // Check if the user is authenticated
-    const user = firebase.auth().currentUser;
-    if (!user) {
-      console.log('User is not authenticated.');
-      return;
-    }
+    setLoading(true); // Start loading
 
-    // Get the user's ID
-    const userId = user.uid;
+    try {
+      const user = firebase.auth().currentUser;
+      if (!user) {
+        console.log('User is not authenticated.');
+        setLoading(false);
+        return;
+      }
 
-    // Check if the user has previously rated the app
-    const ratingDocRef = firebase.firestore().collection('ratings').doc(userId);
-    const ratingDoc = await ratingDocRef.get();
+      const userId = user.uid;
+      const ratingDocRef = firebase.firestore().collection('ratings').doc(userId);
+      const ratingDoc = await ratingDocRef.get();
 
-    if (ratingDoc.exists) {
-      // User has previously rated the app, update the rating
-      const previousRatingByTheUSer = ratingDoc.data().rating;
+      if (ratingDoc.exists) {
+        const previousRatingByTheUser = ratingDoc.data().rating;
 
-      await ratingDocRef.update({
-        rating: rating,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-      });
-
-      const totalRatingDocRef = firebase.firestore().collection('ratings').doc('totalRating');
-      const totalRatingDoc = await totalRatingDocRef.get();
-      if (totalRatingDoc.exists) {
-        // Total rating document exists, update the total rating
-        const data = totalRatingDoc.data();
-        await totalRatingDocRef.update({
-          total: data.total - ratingDoc.data().rating + rating,
-          count: data.count
+        await ratingDocRef.update({
+          rating: rating,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp(),
         });
-        calculateAverageRating();
-      } else {
-        await totalRatingDocRef.set({
-          total: rating,
-          count: 1
-        }).then(()=>{
-          calculateAverageRating();
-        })
-       
-      }
-    } else {
-      // User is rating the app for the first time, create a new rating document
-      await ratingDocRef.set({
-        rating: rating,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-      });
-      const totalRatingDocRef = firebase.firestore().collection('ratings').doc('totalRating');
-      const totalRatingDoc = await totalRatingDocRef.get();
-      if (totalRatingDoc.exists) {
-        // Total rating document exists, update the total rating
-        const data = totalRatingDoc.data();
-        await totalRatingDocRef.update({
-          total: data.total + rating,
-          count: data.count + 1
-        }).then(()=>{
-          calculateAverageRating();
-        })
 
-      } else {
-        await totalRatingDocRef.set({
-          total: rating,
-          count: 1
-        }).then(()=>{
-          calculateAverageRating();
-        })
+        const totalRatingDocRef = firebase.firestore().collection('ratings').doc('totalRating');
+        const totalRatingDoc = await totalRatingDocRef.get();
 
+        if (totalRatingDoc.exists) {
+          const data = totalRatingDoc.data();
+          await totalRatingDocRef.update({
+            total: data.total - ratingDoc.data().rating + rating,
+            count: data.count,
+          });
+          calculateAverageRating();
+        } else {
+          await totalRatingDocRef.set({
+            total: rating,
+            count: 1,
+          });
+          calculateAverageRating();
+        }
+      } else {
+        await ratingDocRef.set({
+          rating: rating,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+
+        const totalRatingDocRef = firebase.firestore().collection('ratings').doc('totalRating');
+        const totalRatingDoc = await totalRatingDocRef.get();
+
+        if (totalRatingDoc.exists) {
+          const data = totalRatingDoc.data();
+          await totalRatingDocRef.update({
+            total: data.total + rating,
+            count: data.count + 1,
+          });
+          calculateAverageRating();
+        } else {
+          await totalRatingDocRef.set({
+            total: rating,
+            count: 1,
+          });
+          calculateAverageRating();
+        }
       }
+    } catch (error) {
+      console.error('Error saving rating:', error);
+    } finally {
+      setLoading(false); // Stop loading
     }
-  }
-
-
+  };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       {/* Embedded YouTube Video */}
       <View style={styles.videoContainer}>
-        <YouTube
-          videoId="PollTEgYOLw"
-          height={200}
-          width="100%"
-        />
+        <YouTube videoId="PollTEgYOLw" height={200} width="100%" />
       </View>
 
       {/* Google Map */}
@@ -156,7 +132,6 @@ const AboutScreen = () => {
         </MapView>
       </View>
 
-
       {/* Interactive Real-time Rating */}
       <View style={styles.ratingContainer}>
         <Text>Rate this app:</Text>
@@ -172,38 +147,23 @@ const AboutScreen = () => {
             </TouchableOpacity>
           ))}
         </View>
-        <TouchableOpacity style={styles.submitButton} onPress={() => saveRating(rating)}>
-          <Text style={styles.submitButtonText}>Submit Rating</Text>
+        <TouchableOpacity
+          style={styles.submitButton}
+          onPress={() => saveRating(rating)}
+          disabled={loading} // Disable button when loading
+        >
+          {loading ? (
+            <ActivityIndicator color="white" /> // Show loading spinner
+          ) : (
+            <Text style={styles.submitButtonText } >Submit Rating</Text> // Show button text
+          )}
         </TouchableOpacity>
         <Text style={styles.averageRatingText}>Average Rating: {averageRating}</Text>
-
       </View>
-
-
-      {/* Multiple Text Boxes and Drop Down Lists */}
-      {/*}    <View style={styles.formContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter your comment"
-          value={comment}
-          onChangeText={setComment}
-        />
-        <Picker
-          selectedValue={selectedOption}
-          onValueChange={(itemValue) => handleOptionChange(itemValue)}
-          style={styles.picker}
-        >
-          <Picker.Item label="Option 1" value="option1" />
-          <Picker.Item label="Option 2" value="option2" />
-          <Picker.Item label="Option 3" value="option3" />
-        </Picker>
-        <Button title="Submit Comment" onPress={handleComment} />
-      </View> */}
 
       {/* Info About Developer */}
       <View style={styles.infoContainer}>
         <Text>About the Developer:</Text>
-        {/* Add developer information here */}
       </View>
     </ScrollView>
   );
@@ -269,5 +229,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
+
 
 export default AboutScreen;

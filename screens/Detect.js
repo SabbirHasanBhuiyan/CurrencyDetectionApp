@@ -47,7 +47,7 @@ const DetectScreen = () => {
         let result = await ImagePicker.launchCameraAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
             allowsEditing: true,
-            quality: 0.05,
+            quality: 0.005,
         });
 
         if (!result.canceled) {
@@ -85,7 +85,7 @@ const pickImageFromGallery = async () => {
   let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      quality: 0.3,
+      quality: 0.01,
   });
 
   if (!result.canceled) {
