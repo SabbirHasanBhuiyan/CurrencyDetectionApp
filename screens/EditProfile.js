@@ -153,7 +153,6 @@ const EditProfileScreen = ({ navigation }) => {
             getDownloadURL(upload.snapshot.ref)
               .then((url) => {
                 downURL = url
-                console.log(downURL);
                 setUploading(false); // Set uploading state to false when uploading finishes
                 updateInfoToDB(url);
               })

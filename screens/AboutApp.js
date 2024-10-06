@@ -45,7 +45,6 @@ const AboutScreen = () => {
     try {
       const user = firebase.auth().currentUser;
       if (!user) {
-        console.log('User is not authenticated.');
         setLoading(false);
         return;
       }

@@ -14,7 +14,6 @@ const Blogs = () => {
   useEffect(() => {
     setUserId(firebase.auth().currentUser.uid);
     let x=searchUserByUserID(firebase.auth().currentUser.uid);
-    console.log(x);
    // setUserName(x);
   }, []);
 
@@ -25,12 +24,10 @@ const Blogs = () => {
         for (const doc of postsSnapshot.docs) {
           const postData = doc.data();
           const postId = doc.id;
-          console.log(postId+' '+firebase.auth().currentUser.uid);
           await firebase.firestore().collection("likesOrDislikes").doc(postId+' '+firebase.auth().currentUser.uid)
             .get()
             .then((snapshot) => {
               if (snapshot.exists) { // Check if the document exists
-                console.log(snapshot.data().value);
                 const likedByCurrentUser = snapshot.data().value===1? 1 : 0 ;
                 const dislikedByCurrentUser = snapshot.data().value===2? 1 : 0; // Implement logic to check if current user disliked this post
                 const formattedPost = {
@@ -97,7 +94,6 @@ const Blogs = () => {
         }
       })
       .catch((error) => {
-        console.log("Error getting documents: ", error);
       });
 
   };
@@ -127,8 +123,6 @@ const Blogs = () => {
         comments: [],
       };
   
-     // console.log(userID);
-      //console.log(userName);
   
       // Add the post to Firestore with the specified document ID
       setPosts([newPost, ...posts]);
@@ -138,12 +132,10 @@ const Blogs = () => {
         .doc(postId) // Specify the document ID here
         .set(newPostToDB)
         .then(() => {
-          console.log('Post added with ID: ', postId);
           // Update local state after successfully adding the post
           setPostText('');
         })
         .catch(error => {
-          console.log('Error adding post: ', error);
         });
         setLoading(false);
 
@@ -156,7 +148,6 @@ const Blogs = () => {
       // Construct the path
       // Set the value in Firestore
       await firebase.firestore().collection('likesOrDislikes').doc(postId+' '+userID).set({ value: value });
-      console.log('Likes or dislikes updated successfully.');
     } catch (error) {
       console.error('Error updating likes or dislikes:', error);
     }
@@ -168,7 +159,6 @@ const Blogs = () => {
         likes: likes,
         dislikes: dislikes
       });
-      console.log('Post likes and dislikes updated successfully.');
     } catch (error) {
       console.error('Error updating post likes and dislikes:', error);
     }
@@ -247,7 +237,6 @@ const Blogs = () => {
           comments: [newComment]
         });
       }
-      console.log('Comment added successfully.');
     } catch (error) {
       console.error('Error adding comment:', error);
     }
