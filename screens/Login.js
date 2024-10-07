@@ -1,12 +1,14 @@
-import { View, Text, TouchableOpacity, TextInput, StyleSheet } from "react-native";
-import React, { useState } from "react";
+import { View, Text, Image, TouchableOpacity, TextInput, StyleSheet } from "react-native";
+import React, { useState ,useRef,useEffect } from "react";
 import { useNavigation } from "@react-navigation/native";
 import { firebase } from "../config";
+import { gsap, Back } from 'gsap-rn';
 
 const Login = () => {
   const navigation = useNavigation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const viewRef = useRef(null);
 
   const loginUser = async (email, password) => {
     try {
@@ -16,8 +18,18 @@ const Login = () => {
     }
   };
 
+  useEffect(() => {
+    const view = viewRef.current;
+    gsap.to(view, { duration: 1, transform: { rotate: 360, scale: 1 }, ease: Back.easeInOut });
+  }, []);
+
   return (
     <View style={styles.container}>
+              <Image
+          ref={viewRef}
+          style={styles.logo}
+          source={require('../assets/logo.png')}
+        />
       <Text style={{ fontWeight: "bold", fontSize: 26 }}>Login</Text>
       <View style={{ marginTop: 40 }}>
         <TextInput
@@ -60,7 +72,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     alignItems: "center",
-    marginTop: 100,
+    marginTop: 10,
   },
   textInput: {
     paddingTop: 20,
@@ -80,5 +92,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 50,
-  }
+  },
+    logo: {
+      alignSelf: 'center',
+      height: 100,
+      width: 150,
+    }
+  
 });

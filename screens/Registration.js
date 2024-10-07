@@ -4,9 +4,11 @@ import {
   TouchableOpacity,
   TextInput,
   StyleSheet,
+  Image,
 } from "react-native";
+import { gsap, Back } from 'gsap-rn';
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState,useRef } from "react";
 
 import { firebase } from "../config";
 
@@ -16,6 +18,12 @@ const Registration = () => {
   const [name, setName] = useState("");
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [isUsernameAvailable, setIsUsernameAvailable] = useState(false);
+  const viewRef = useRef(null);
+
+  useEffect(() => {
+    const view = viewRef.current;
+    gsap.to(view, { duration: 1, transform: { rotate: 360, scale: 1 }, ease: Back.easeInOut });
+  }, []);
 
   const checkUsernameAvailability = () => {
     setIsCheckingUsername(true);
@@ -92,6 +100,11 @@ const Registration = () => {
 
   return (
     <View style={styles.container}>
+              <Image
+          ref={viewRef}
+          style={styles.logo}
+          source={require('../assets/logo.png')}
+        />
       <Text style={{ fontWeight: "bold", fontSize: 23 }}>Register Here!!</Text>
 
       <View style={{ marginTop: 40 }}>
@@ -149,7 +162,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     alignItems: "center",
-    marginTop: 100,
+    marginTop: 10,
   },
   checkingText: {
     textAlign: 'center',
@@ -191,5 +204,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 50,
-  },
+  }, logo: {
+    alignSelf: 'center',
+    height: 100,
+    width: 150,
+  }
 });
