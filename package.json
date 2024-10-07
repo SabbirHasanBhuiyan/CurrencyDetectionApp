@@ -30,7 +30,7 @@
     "expo-location": "~16.5.5",
     "expo-status-bar": "~1.11.1",
     "firebase": "^10.8.0",
-    "graphql": "^15.8.0",
+    "graphql": "^15.9.0",
     "gsap": "^3.12.5",
     "gsap-rn": "^0.0.18",
     "link": "^2.1.0",
