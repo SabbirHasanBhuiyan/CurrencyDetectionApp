@@ -8,14 +8,13 @@ const CountryQuery = gql`
       name
       capital
       currency
-      code
     }
   }
 `;
 
 const CountryInfo = () => {
   const { data, loading } = useQuery(CountryQuery);
-  const [countries, setCountries] = useState([]); // Initialize countries state
+  const [countries, setCountries] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const countriesPerPage = 10;
 
@@ -28,95 +27,106 @@ const CountryInfo = () => {
   if (loading) return <ActivityIndicator size="large" color="#0000ff" />;
   if (!data || data.countries.length === 0) return <Text style={styles.errorText}>No countries found.</Text>;
 
-  // Calculate the indices of the countries to display on the current page
   const indexOfLastCountry = currentPage * countriesPerPage;
   const indexOfFirstCountry = indexOfLastCountry - countriesPerPage;
-  const currentCountries = countries.slice(indexOfFirstCountry, indexOfLastCountry); // Use the state variable
+  const currentCountries = countries.slice(indexOfFirstCountry, indexOfLastCountry);
   const totalPages = Math.ceil(countries.length / countriesPerPage);
 
-  const renderCountryItem = ({ item, index }) => (
+  const renderCountryItem = ({ item }) => (
     <View style={styles.item}>
-      <Text style={styles.serialNo}>{index + indexOfFirstCountry + 1}.</Text>
-      <Text style={styles.heading}>Country: <Text style={styles.text}>{item.name}</Text></Text>
-      <Text style={styles.heading}>Capital: <Text style={styles.text}>{item.capital}</Text></Text>
-      <Text style={styles.heading}>Currency: <Text style={styles.text}>{item.currency}</Text></Text>
-      <Text style={styles.heading}>Code: <Text style={styles.text}>{item.code}</Text></Text>
+      <Text style={styles.countryName}>{item.name}</Text>
+      <Text style={styles.detail}> {item.capital}</Text>
+      <Text style={styles.detail}> {item.currency}</Text>
     </View>
   );
 
-  return (
-    <View style={styles.wrapper}>
-      <FlatList
-        data={currentCountries}
-        renderItem={renderCountryItem}
-        keyExtractor={(item, index) => index.toString()}
-        contentContainerStyle={styles.container}
-      />
+  const renderHeader = () => (
+    <View style={styles.header}>
+      <Text style={styles.headerText}>Country</Text>
+      <Text style={styles.headerText}>Capital</Text>
+      <Text style={styles.headerText}>Currency</Text>
+    </View>
+  );
 
-      {/* Pagination Buttons */}
-      <View style={styles.paginationContainer}>
-        <TouchableOpacity style={styles.button} onPress={() => setCurrentPage((prev) => Math.max(prev - 1, 1))} disabled={currentPage === 1}>
-          <Text style={styles.buttonText}>Previous</Text>
-        </TouchableOpacity>
-        <Text style={styles.pageText}>Page {currentPage} of {totalPages}</Text>
-        <TouchableOpacity style={styles.button} onPress={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages}>
-          <Text style={styles.buttonText}>Next</Text>
-        </TouchableOpacity>
-      </View>
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      {loading ? (
+        <ActivityIndicator size="large" color="#0000ff" />
+      ) : (
+        <>
+          <FlatList
+            data={currentCountries}
+            renderItem={renderCountryItem}
+            keyExtractor={(item) => item.countries}
+            ListHeaderComponent={renderHeader}
+          />
+          <View style={styles.pagination}>
+            <TouchableOpacity style={styles.button} onPress={handlePrevPage} disabled={currentPage === 1}>
+              <Text style={styles.buttonText}>Previous Page</Text>
+            </TouchableOpacity>
+            <Text style={styles.pageText}>Page {currentPage} of {totalPages}</Text>
+            <TouchableOpacity style={styles.button} onPress={handleNextPage} disabled={currentPage === totalPages}>
+              <Text style={styles.buttonText}>Next Page</Text>
+            </TouchableOpacity>
+          </View>
+        </>
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  wrapper: {
+  container: {
     flex: 1,
+    padding: 10,
     backgroundColor: '#f5f5f5',
   },
-  container: {
-    padding: 20,
-    paddingBottom: 100, // Added space for pagination buttons
-  },
   item: {
-    padding: 15,
-    marginBottom: 15,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    backgroundColor: '#fff',
-    elevation: 2, // Shadow effect for Android
-    shadowColor: '#000', // Shadow effect for iOS
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  serialNo: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#007BFF',
-  },
-  heading: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  text: {
-    fontSize: 16,
-    fontWeight: 'normal',
-    color: '#555',
-  },
-  paginationContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#f9f9f9',
-    borderTopWidth: 1,
-    borderColor: '#ddd',
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc',
+    backgroundColor: '#fff',
   },
-  pageText: {
-    fontSize: 18,
+  countryName: {
+    flex: 1,
+    fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
+  },
+  detail: {
+    flex: 1,
+    fontSize: 14,
+    color: '#555',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 10,
+    backgroundColor: '#f9f9f9',
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc',
+  },
+  headerText: {
+    flex: 1,
+    fontWeight: 'bold',
+  },
+  pagination: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
   },
   button: {
     backgroundColor: '#4267B2',
@@ -125,6 +135,10 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#fff',
+  },
+  pageText: {
+    fontSize: 16,
+    alignSelf: 'center',
   },
   errorText: {
     fontSize: 18,
